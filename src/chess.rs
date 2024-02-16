@@ -45,7 +45,7 @@ enum File {
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct Piece(PieceType, Color);
 
-struct Position (File, Rank);
+struct Position(File, Rank);
 
 impl Position {
     fn from_string(s: &str) -> Result<Position, String> {
@@ -86,7 +86,6 @@ struct Board {
 }
 
 impl Board {
-
     fn default() -> Board {
         Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
@@ -106,7 +105,7 @@ impl Board {
     fn squares_from_fen(fen_squares: &str) -> Result<[[Option<Piece>; 8]; 8], String> {
         let mut squares: [[Option<Piece>; 8]; 8] = [[None; 8]; 8];
         let mut rank: usize = 7;
-        let mut file: usize= 0;
+        let mut file: usize = 0;
         for c in fen_squares.chars() {
             match c {
                 '/' => {
@@ -196,17 +195,20 @@ impl Board {
     }
 
     fn can_castle_kingside(&self, color: Color) -> bool {
-        self.castling_rights & match color {
-            Color::White => 0b1000,
-            Color::Black => 0b0010,
-        } != 0
+        self.castling_rights
+            & match color {
+                Color::White => 0b1000,
+                Color::Black => 0b0010,
+            }
+            != 0
     }
 
     fn can_castle_queenside(&self, color: Color) -> bool {
-        self.castling_rights & match color {
-            Color::White => 0b0100,
-            Color::Black => 0b0001,
-        } != 0
+        self.castling_rights
+            & match color {
+                Color::White => 0b0100,
+                Color::Black => 0b0001,
+            }
+            != 0
     }
-
 }

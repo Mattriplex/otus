@@ -4,12 +4,13 @@ mod tests {
 
     #[test]
     fn test_fen_default_board() {
-        use Color::{*};
-        use PieceType::{*};
-        use Rank::{*};
-        use File::{*};
+        use Color::*;
+        use File::*;
+        use PieceType::*;
+        use Rank::*;
 
-        let board: Board = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
+        let board: Board =
+            Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
 
         assert_eq!(board.get_piece(A, _1), Some(Piece(Rook, White)));
         assert_eq!(board.get_piece(A, _2), Some(Piece(Pawn, White)));
@@ -93,12 +94,13 @@ mod tests {
 
     #[test]
     fn test_fen_board() {
-        use Color::{*};
-        use PieceType::{*};
-        use Rank::{*};
-        use File::{*};
+        use Color::*;
+        use File::*;
+        use PieceType::*;
+        use Rank::*;
 
-        let board: Board = Board::from_fen("r1bk3r/p2pBpNp/n4n2/1p1NP2P/6P1/3P4/P1P1K3/q5b1 b - e3 0 1").unwrap();
+        let board: Board =
+            Board::from_fen("r1bk3r/p2pBpNp/n4n2/1p1NP2P/6P1/3P4/P1P1K3/q5b1 b - e3 0 1").unwrap();
 
         assert_eq!(board.get_piece(A, _1), Some(Piece(Queen, Black)));
         assert_eq!(board.get_piece(A, _2), Some(Piece(Pawn, White)));
