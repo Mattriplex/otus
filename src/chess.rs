@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 mod tests;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -45,6 +47,26 @@ enum File {
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct Piece(PieceType, Color);
 
+impl fmt::Display for Piece {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let symbol = match self {
+            Piece(PieceType::Pawn, Color::White) => '♙',
+            Piece(PieceType::Knight, Color::White) => '♘',
+            Piece(PieceType::Bishop, Color::White) => '♗',
+            Piece(PieceType::Rook, Color::White) => '♖',
+            Piece(PieceType::Queen, Color::White) => '♕',
+            Piece(PieceType::King, Color::White) => '♔',
+            Piece(PieceType::Pawn, Color::Black) => '♟',
+            Piece(PieceType::Knight, Color::Black) => '♞',
+            Piece(PieceType::Bishop, Color::Black) => '♝',
+            Piece(PieceType::Rook, Color::Black) => '♜',
+            Piece(PieceType::Queen, Color::Black) => '♛',
+            Piece(PieceType::King, Color::Black) => '♚',
+        };
+        write!(f, "{}", symbol)
+    }
+}
+
 struct Position(File, Rank);
 
 impl Position {
@@ -78,7 +100,7 @@ impl Position {
     }
 }
 
-struct Board {
+pub struct Board {
     squares: [[Option<Piece>; 8]; 8],
     active_player: Color,
     castling_rights: u8, // KQkq
@@ -86,7 +108,7 @@ struct Board {
 }
 
 impl Board {
-    fn default() -> Board {
+    pub fn default() -> Board {
         Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 
@@ -211,4 +233,41 @@ impl Board {
             }
             != 0
     }
+
+    fn fmt_rank(&self, f: &mut fmt::Formatter, rank: usize) -> fmt::Result {
+        for file in 0..8 {
+            match self.squares[rank][file] {
+                Some(p) => p.fmt(f),
+                None => write!(f, "."),
+            }?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Display for Board {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for rank in (0..8).rev() {
+            self.fmt_rank(f, rank)?;
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+
+}
+
+
+enum Move {
+    Normal {
+        from: Position,
+        to: Position,
+    },
+    CastleKingside,
+    CastleQueenside,
+    Promotion {
+        from: Position,
+        to: Position,
+        piece: PieceType,
+    },
 }
