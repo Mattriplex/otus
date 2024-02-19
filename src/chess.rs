@@ -1,6 +1,7 @@
 use std::fmt::{self, Display};
 
 mod tests;
+mod move_checking;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum PieceType {
@@ -67,7 +68,7 @@ impl fmt::Display for Piece {
     }
 }
 
-struct Position(File, Rank);
+pub struct Position(File, Rank);
 
 impl Position {
     fn from_string(s: &str) -> Result<Position, String> {
@@ -108,6 +109,15 @@ pub struct Board {
 }
 
 impl Board {
+    pub fn empty() -> Board {
+        Board {
+            squares: [[None; 8]; 8],
+            active_player: Color::White,
+            castling_rights: 0,
+            en_passant_target: None,
+        }
+    }
+
     pub fn default() -> Board {
         Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
@@ -258,7 +268,7 @@ impl fmt::Display for Board {
 }
 
 
-enum Move {
+pub enum Move {
     Normal {
         from: Position,
         to: Position,
@@ -270,4 +280,14 @@ enum Move {
         to: Position,
         piece: PieceType,
     },
+}
+
+enum GameState {
+    InProgress(Board),
+    Checkmate(Color),
+    Stalemate
+}
+
+trait ChessPlayer {
+    fn make_move(&self, board: &Board) -> Move;
 }
