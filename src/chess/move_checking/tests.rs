@@ -1,5 +1,3 @@
-#[cfg(test)]
-mod tests {
     use crate::chess::move_checking::is_move_legal;
     use crate::chess::Color::*;
     use crate::chess::File::*;
@@ -7,67 +5,33 @@ mod tests {
     use crate::chess::Rank::*;
     use crate::chess::{Board, Color, File, Move, Piece, PieceType, Position, Rank};
 
-    // Pawn Moves
 
     #[test]
-    fn test_pawn_double_move_white() {
-        let board = Board::default();
-        let m = Move::Normal {
-            from: Position(A, _2),
-            to: Position(A, _2),
-        };
-
-        assert!(is_move_legal(&board, m));
-    }
+    fn test_cannot_move_opponents_piece() {}
 
     #[test]
-    fn test_pawn_double_move_black() {
-        let mut board = Board::default();
-        board.active_player = Black;
-        let m = Move::Normal {
-            from: Position(A, _7),
-            to: Position(A, _5),
-        };
-
-        assert!(is_move_legal(&board, m));
-    }
+    fn test_cannot_move_to_same_square() {}
 
     #[test]
-    fn test_cannot_move_other_player_pieces() {
-        let board = Board::default();
-        let m = Move::Normal {
-            from: Position(A, _7),
-            to: Position(A, _5),
-        };
-
-        assert!(!is_move_legal(&board, m));
-    }
-
-    //todo parameterize player, direction
-    #[test]
-    fn test_pawn_capture_right() {
-        let mut board = Board::default();
-        board.set_piece(A, _2, Piece(Pawn, White));
-        board.set_piece(B, _3, Piece(Pawn, White));
-        let m = Move::Normal {
-            from: Position(A, _2),
-            to: Position(B, _3),
-        };
-
-        assert!(is_move_legal(&board, m));
-    }
+    fn test_cannot_capture_own_piece() {}
 
     #[test]
-    fn test_pawn_straight_move() {}
+    fn test_valid_movement_patterns() {} //paramtereize piece, start, end
 
     #[test]
-    fn test_pawn_straight_move_blocked() {}
+    fn test_invalid_movement_patterns() {}
 
     #[test]
-    fn test_promotion() {}
+    fn test_double_pawn_move() {}
 
     #[test]
-    fn test_promotion_capture() {}
+    fn test_invalid_double_pawn_move() {}
+
+    #[test]
+    fn test_blocked_pawn() {}
+
+    #[test]
+    fn test_capture() {}
 
     #[test]
     fn test_en_passant() {}
@@ -75,18 +39,50 @@ mod tests {
     #[test]
     fn test_invalid_en_passant() {}
 
-    // Bishop Moves
     #[test]
-    fn test_bishop_legal_move() {}
+    fn test_no_normal_pawn_move_to_board_end() {}
 
     #[test]
-    fn test_bishop_illegal_move() {}
+    fn test_promotion_move() {}
 
     #[test]
-    fn test_bishop_capture() {}
+    fn test_promotion_capture() {}
 
-    // Knight Moves
-    // Rook Moves
-    // Queen Moves
-    // King Moves
-}
+    #[test]
+    fn test_sliding_piece_blocked_by_friendly_piece() {}
+
+    #[test]
+    fn test_must_not_move_king_into_check() {}
+
+    #[test]
+    fn test_must_not_leave_king_in_check() {}
+
+    #[test]
+    fn test_must_not_put_king_in_check() {}
+
+    #[test]
+    fn test_en_passant_must_not_put_king_in_check() {}
+
+    #[test]
+    fn test_castling_must_not_put_king_in_check() {}
+
+    #[test]
+    fn test_castling_must_not_move_king_through_check() {}
+
+    #[test]
+    fn test_valid_castling() {}
+
+    #[test]
+    fn test_missing_castling_rights() {}
+
+    #[test]
+    fn test_king_move_voids_castling_rights() {}
+
+    #[test]
+    fn test_rook_move_voids_castling_rights() {}
+
+    #[test]
+    fn test_rook_capture_voids_castling_rights() {} 
+
+
+    

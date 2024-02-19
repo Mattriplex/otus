@@ -1,5 +1,7 @@
 use std::fmt::{self, Display};
 
+use crate::chess::move_checking::is_move_legal;
+
 mod move_checking;
 #[cfg(test)]
 mod tests;
@@ -15,9 +17,32 @@ enum PieceType {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-enum Color {
+pub enum Color {
     White,
     Black,
+}
+
+pub trait Opponent {
+    fn opponent(&self) -> Self;
+}
+
+impl Opponent for Color {
+    fn opponent(&self) -> Color {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
+    }
+}
+
+impl Display for Color {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Color::White => "White",
+            Color::Black => "Black",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -76,7 +101,7 @@ impl Position {
         if s.len() != 2 {
             return Err("Expected 2 characters".to_string());
         }
-        let file = match s.chars().nth(0).unwrap() {
+        let file = match s.chars().nth(0).unwrap().to_ascii_lowercase() {
             'a' => Ok(File::A),
             'b' => Ok(File::B),
             'c' => Ok(File::C),
@@ -280,12 +305,76 @@ pub enum Move {
     },
 }
 
-enum GameState {
-    InProgress(Board),
-    Checkmate(Color),
+pub enum GameState {
+    InProgress,
+    Mated(Color),
     Stalemate,
 }
 
-trait ChessPlayer {
+pub trait ChessPlayer {
     fn make_move(&self, board: &Board) -> Move;
+}
+
+
+pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) -> GameState {
+    let mut board = Board::default();
+    loop {
+        let m = match board.active_player {
+            Color::White => white_player.make_move(&board),
+            Color::Black => black_player.make_move(&board),
+        };
+        match move_checking::apply_move(&board, &m) {
+            Ok(new_board) => {
+                board = new_board;
+                match move_checking::get_gamestate(&board) {
+                    GameState::InProgress => (),
+                    gs => return gs,
+                }
+            }
+            // Illegal move, game is forfeit
+            Err(_) => return GameState::Mated(board.active_player),
+        }
+    }
+}
+
+pub struct HumanPlayer;
+
+impl HumanPlayer {
+    fn try_get_move_input(&self, board: &Board) -> Result<Move, String> {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        match input.trim() {
+            "0-0" => Ok(Move::CastleKingside),
+            "0-0-0" => Ok(Move::CastleQueenside),
+            s => {
+                let parts: Vec<&str> = s.split_whitespace().collect();
+                if parts.len() != 2 {
+                    return Err("Error parsing move".to_string());
+                }
+                let from = Position::from_string(parts[0]).unwrap();
+                let to = Position::from_string(parts[1]).unwrap();
+                let move_ = Move::Normal { from, to };
+                if is_move_legal(board, &move_) {
+                    Ok(move_)
+                } else {
+                    Err("Illegal move".to_string())
+                }
+            }
+        }
+    }
+}
+
+impl ChessPlayer for HumanPlayer {
+    // TODO promotion move
+    fn make_move(&self, board: &Board) -> Move {
+        println!("{}", board);
+        println!("You are {}. Enter your move: ", board.active_player);
+        let mut input = String::new();
+        loop {
+            match self.try_get_move_input(board) {
+                Ok(m) => return m,
+                Err(e) => println!("{}, try again!", e),
+            }
+        }
+    }
 }
