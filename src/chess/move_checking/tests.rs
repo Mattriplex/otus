@@ -1,18 +1,21 @@
 #[cfg(test)]
 mod tests {
     use crate::chess::move_checking::is_move_legal;
-    use crate::chess::{Board, Color, File, Move, Piece, PieceType, Position, Rank};
-    use crate::chess::PieceType::*;
     use crate::chess::Color::*;
     use crate::chess::File::*;
+    use crate::chess::PieceType::*;
     use crate::chess::Rank::*;
+    use crate::chess::{Board, Color, File, Move, Piece, PieceType, Position, Rank};
 
     // Pawn Moves
 
     #[test]
     fn test_pawn_double_move_white() {
         let board = Board::default();
-        let m = Move::Normal { from: Position(A, _2), to: Position(A, _2) };
+        let m = Move::Normal {
+            from: Position(A, _2),
+            to: Position(A, _2),
+        };
 
         assert!(is_move_legal(&board, m));
     }
@@ -55,54 +58,35 @@ mod tests {
     }
 
     #[test]
-    fn test_pawn_straight_move() {
-
-    }
+    fn test_pawn_straight_move() {}
 
     #[test]
-    fn test_pawn_straight_move_blocked() {
-
-    }
+    fn test_pawn_straight_move_blocked() {}
 
     #[test]
-    fn test_promotion() {
-
-    }
+    fn test_promotion() {}
 
     #[test]
-    fn test_promotion_capture() {
-
-    }
+    fn test_promotion_capture() {}
 
     #[test]
-    fn test_en_passant() {
-
-    }
+    fn test_en_passant() {}
 
     #[test]
-    fn test_invalid_en_passant() {
-        
-    }
+    fn test_invalid_en_passant() {}
 
     // Bishop Moves
     #[test]
-    fn test_bishop_legal_move() {
-
-    }
+    fn test_bishop_legal_move() {}
 
     #[test]
-    fn test_bishop_illegal_move() {
-
-    }
+    fn test_bishop_illegal_move() {}
 
     #[test]
-    fn test_bishop_capture() {
-
-    }
+    fn test_bishop_capture() {}
 
     // Knight Moves
     // Rook Moves
     // Queen Moves
     // King Moves
-
 }

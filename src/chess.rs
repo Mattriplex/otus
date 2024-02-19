@@ -1,7 +1,8 @@
 use std::fmt::{self, Display};
 
-mod tests;
 mod move_checking;
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum PieceType {
@@ -256,7 +257,6 @@ impl Board {
 }
 
 impl fmt::Display for Board {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for rank in (0..8).rev() {
             self.fmt_rank(f, rank)?;
@@ -264,9 +264,7 @@ impl fmt::Display for Board {
         }
         Ok(())
     }
-
 }
-
 
 pub enum Move {
     Normal {
@@ -285,7 +283,7 @@ pub enum Move {
 enum GameState {
     InProgress(Board),
     Checkmate(Color),
-    Stalemate
+    Stalemate,
 }
 
 trait ChessPlayer {

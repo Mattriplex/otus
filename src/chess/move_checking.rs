@@ -1,9 +1,6 @@
-
 mod tests;
 
-    use crate::chess::{Board, Move};
-
-
+use crate::chess::{Board, Move};
 
 pub fn apply_move(board: &Board, m: Move) -> Result<Board, String> {
     unimplemented!("apply_move")
