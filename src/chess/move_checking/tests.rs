@@ -1,88 +1,354 @@
-    use crate::chess::move_checking::is_move_legal;
-    use crate::chess::Color::*;
-    use crate::chess::File::*;
-    use crate::chess::PieceType::*;
-    use crate::chess::Rank::*;
-    use crate::chess::{Board, Color, File, Move, Piece, PieceType, Position, Rank};
 
+use rstest::rstest;
 
-    #[test]
-    fn test_cannot_move_opponents_piece() {}
+use crate::chess::move_checking::apply_move;
+use crate::chess::move_checking::is_move_legal;
+use crate::chess::Color::*;
+use crate::chess::File::*;
+use crate::chess::Opponent;
+use crate::chess::PieceType::*;
+use crate::chess::Rank::*;
+use crate::chess::{Board, Color, File, Move, Piece, PieceType, Position, Rank};
 
-    #[test]
-    fn test_cannot_move_to_same_square() {}
+#[rstest]
+#[case(White)]
+#[case(Black)]
+fn test_cannot_move_opponents_piece(#[case] player: Color) {
+    let mut board = Board::empty();
+    board.active_player = player;
+    board.set_piece(E, _2, Piece(PieceType::Queen, player.opponent()));
+    let move_ = Move::Normal {
+        from: Position(E, _2),
+        to: Position(E, _4),
+    };
 
-    #[test]
-    fn test_cannot_capture_own_piece() {}
+    assert!(!is_move_legal(&board, &move_));
+}
 
-    #[test]
-    fn test_valid_movement_patterns() {} //paramtereize piece, start, end
+#[rstest]
+#[case(White)]
+#[case(Black)]
+fn test_cannot_move_to_same_square(#[case] player: Color) {
+    let mut board = Board::empty();
+    board.active_player = player;
+    board.set_piece(E, _2, Piece(PieceType::Queen, player));
+    let move_ = Move::Normal {
+        from: Position(E, _2),
+        to: Position(E, _2),
+    };
 
-    #[test]
-    fn test_invalid_movement_patterns() {}
+    assert!(!is_move_legal(&board, &move_));
+}
 
-    #[test]
-    fn test_double_pawn_move() {}
+#[rstest]
+#[case(White)]
+#[case(Black)]
+fn test_cannot_move_from_empty_square(#[case] player: Color) {
+    let mut board = Board::empty();
+    board.active_player = player;
+    let move_ = Move::Normal {
+        from: Position(E, _2),
+        to: Position(E, _3),
+    };
 
-    #[test]
-    fn test_invalid_double_pawn_move() {}
+    assert!(!is_move_legal(&board, &move_));
+}
 
-    #[test]
-    fn test_blocked_pawn() {}
+#[rstest]
+#[case(White)]
+#[case(Black)]
+fn test_cannot_capture_own_piece(#[case] player: Color) {
+    let mut board = Board::empty();
+    board.active_player = player;
+    board.set_piece(E, _2, Piece(PieceType::Queen, player));
+    board.set_piece(E, _3, Piece(PieceType::Queen, player));
+    let move_ = Move::Normal {
+        from: Position(E, _2),
+        to: Position(E, _3),
+    };
 
-    #[test]
-    fn test_capture() {}
+    assert!(!is_move_legal(&board, &move_));
+}
 
-    #[test]
-    fn test_en_passant() {}
+#[rstest]
+#[case(Pawn, E, _3)]
+#[case(Pawn, E, _4)]
+#[case(Knight, C, _1)]
+#[case(Knight, C, _3)]
+#[case(Knight, D, _4)]
+#[case(Knight, F, _4)]
+#[case(Knight, G, _3)]
+#[case(Knight, G, _1)]
+#[case(Bishop, C, _4)]
+#[case(Bishop, F, _1)]
+#[case(Bishop, A, _6)]
+#[case(Bishop, H, _5)]
+#[case(Rook, E, _1)]
+#[case(Rook, A, _2)]
+#[case(Rook, H, _2)]
+#[case(Rook, E, _5)]
+#[case(Queen, E, _1)]
+#[case(Queen, D, _1)]
+#[case(Queen, H, _2)]
+#[case(King, E, _1)]
+#[case(King, F, _3)]
+fn test_valid_movement_patterns(
+    #[case] piece: PieceType,
+    #[case] dst_file: File,
+    #[case] dst_rank: Rank,
+) {
+    let mut board = Board::empty();
+    board.active_player = White;
+    board.set_piece(E, _2, Piece(piece, White));
+    let move_ = Move::Normal {
+        from: Position(E, _2),
+        to: Position(dst_file, dst_rank),
+    };
 
-    #[test]
-    fn test_invalid_en_passant() {}
+    assert!(is_move_legal(&board, &move_));
+}
 
-    #[test]
-    fn test_no_normal_pawn_move_to_board_end() {}
+#[rstest]
+#[case(Pawn, E, _1)]
+#[case(Pawn, E, _5)]
+#[case(Pawn, D, _3)]
+#[case(Pawn, F, _3)]
+#[case(Knight, E, _4)]
+#[case(Knight, D, _2)]
+#[case(Knight, D, _1)]
+#[case(Bishop, E, _3)]
+#[case(Queen, G, _3)]
+#[case(King, E, _4)]
+#[case(King, G, _3)]
+#[case(King, F, _3)]
+fn test_invalid_movement_patterns(
+    #[case] piece: PieceType,
+    #[case] dst_file: File,
+    #[case] dst_rank: Rank,
+) {
+    let mut board = Board::empty();
+    board.active_player = White;
+    board.set_piece(E, _2, Piece(piece, White));
+    let move_ = Move::Normal {
+        from: Position(E, _2),
+        to: Position(dst_file, dst_rank),
+    };
 
-    #[test]
-    fn test_promotion_move() {}
+    assert!(!is_move_legal(&board, &move_));
+}
 
-    #[test]
-    fn test_promotion_capture() {}
+#[rstest]
+#[case(F, _6, true)]
+#[case(F, _5, true)]
+#[case(F, _4, false)]
+#[case(G, _6, false)]
+fn test_black_pawn_moves(#[case] dst_file: File, #[case] dst_rank: Rank, #[case] expected: bool) {
+    let mut board = Board::empty();
+    board.active_player = Black;
+    board.set_piece(F, _7, Piece(Pawn, Black));
+    let move_ = Move::Normal {
+        from: Position(F, _7),
+        to: Position(dst_file, dst_rank),
+    };
 
-    #[test]
-    fn test_sliding_piece_blocked_by_friendly_piece() {}
+    assert_eq!(is_move_legal(&board, &move_), expected);
+}
 
-    #[test]
-    fn test_must_not_move_king_into_check() {}
+#[test]
+fn test_blocked_pawn() {
+    let mut board = Board::empty();
+    board.active_player = Black;
+    board.set_piece(F, _7, Piece(Pawn, Black));
+    board.set_piece(F, _6, Piece(Pawn, White));
+    let move1 = Move::Normal {
+        from: Position(F, _7),
+        to: Position(F, _6),
+    };
+    let move2 = Move::Normal {
+        from: Position(F, _7),
+        to: Position(F, _5),
+    };
 
-    #[test]
-    fn test_must_not_leave_king_in_check() {}
+    assert!(!is_move_legal(&board, &move1));
+    assert!(!is_move_legal(&board, &move2));
+}
 
-    #[test]
-    fn test_must_not_put_king_in_check() {}
+#[rstest]
+#[case(White, Pawn, D, _5)]
+#[case(White, Pawn, F, _5)]
+#[case(Black, Pawn, D, _3)]
+#[case(Black, Pawn, F, _3)]
+#[case(Black, Knight, F, _2)]
+#[case(Black, Bishop, B, _1)]
+#[case(White, Rook, H, _4)]
+#[case(White, Queen, A, _4)]
+#[case(Black, King, F, _5)]
+fn test_capture(
+    #[case] player: Color,
+    #[case] piece: PieceType,
+    #[case] dst_file: File,
+    #[case] dst_rank: Rank,
+) {
+    let mut board = Board::empty();
+    board.active_player = player;
+    board.set_piece(E, _4, Piece(piece, player));
+    board.set_piece(
+        dst_file,
+        dst_rank,
+        Piece(PieceType::Pawn, player.opponent()),
+    );
+    let move_ = Move::Normal {
+        from: Position(E, _4),
+        to: Position(dst_file, dst_rank),
+    };
 
-    #[test]
-    fn test_en_passant_must_not_put_king_in_check() {}
+    let result = apply_move(&board, &move_).unwrap();
 
-    #[test]
-    fn test_castling_must_not_put_king_in_check() {}
+    assert_eq!(result.get_piece(E, _4), None);
+    assert_eq!(
+        result.get_piece(dst_file, dst_rank),
+        Some(Piece(piece, player))
+    );
+}
 
-    #[test]
-    fn test_castling_must_not_move_king_through_check() {}
+#[test]
+fn test_en_passant_target() {
+    let mut board = Board::empty();
+    board.active_player = White;
+    board.set_piece(A, _2, Piece(PieceType::Pawn, Black));
+    let move_ = Move::Normal {
+        from: Position(A, _2),
+        to: Position(A, _4),
+    };
 
-    #[test]
-    fn test_valid_castling() {}
+    let result = apply_move(&board, &move_).unwrap();
 
-    #[test]
-    fn test_missing_castling_rights() {}
+    assert_eq!(result.en_passant_target, Some(Position(A, _3)));
+}
 
-    #[test]
-    fn test_king_move_voids_castling_rights() {}
+#[test]
+fn test_en_passant_capture() {
+    let mut board = Board::empty();
+    board.active_player = White;
+    board.en_passant_target = Some(Position(D, _6));
+    board.set_piece(D, _5, Piece(PieceType::Pawn, Black));
+    board.set_piece(E, _5, Piece(PieceType::Pawn, White));
+    let move_ = Move::Normal {
+        from: Position(E, _5),
+        to: Position(D, _6),
+    };
 
-    #[test]
-    fn test_rook_move_voids_castling_rights() {}
+    let result = apply_move(&board, &move_).unwrap();
 
-    #[test]
-    fn test_rook_capture_voids_castling_rights() {} 
+    assert_eq!(result.get_piece(E, _5), None);
+    assert_eq!(result.get_piece(D, _5), None);
+    assert_eq!(result.get_piece(D, _6), Some(Piece(PieceType::Pawn, White)));
+    assert!(result.en_passant_target.is_none());
+}
 
+#[test]
+fn test_invalid_en_passant() {
+    let mut board = Board::empty();
+    board.active_player = White;
+    board.en_passant_target = None;
+    board.set_piece(D, _5, Piece(PieceType::Pawn, Black));
+    board.set_piece(E, _5, Piece(PieceType::Pawn, White));
+    let move_ = Move::Normal {
+        from: Position(E, _5),
+        to: Position(D, _6),
+    };
 
-    
+    assert!(!is_move_legal(&board, &move_));
+}
+
+#[test]
+fn test_no_normal_pawn_move_to_board_end() {
+    let mut board = Board::empty();
+    board.active_player = Black;
+    board.set_piece(F, _2, Piece(PieceType::Pawn, Black));
+    let move_ = Move::Normal {
+        from: Position(F, _2),
+        to: Position(F, _1),
+    };
+
+    assert!(!is_move_legal(&board, &move_));
+}
+
+#[test]
+fn test_promotion_move() {
+    let mut board = Board::empty();
+    board.active_player = Black;
+    board.set_piece(F, _2, Piece(PieceType::Pawn, Black));
+    let move_ = Move::Promotion {
+        from: Position(F, _2),
+        to: Position(F, _1),
+        promotion: crate::chess::PromotionPieceType::Queen,
+    };
+
+    let result = apply_move(&board, &move_).unwrap();
+
+    assert_eq!(result.get_piece(F, _2), None);
+    assert_eq!(
+        result.get_piece(F, _1),
+        Some(Piece(PieceType::Queen, Black))
+    );
+}
+
+#[test]
+fn test_promotion_capture() {
+    let mut board = Board::empty();
+    board.active_player = White;
+    board.set_piece(B, _7, Piece(PieceType::Pawn, White));
+    board.set_piece(A, _8, Piece(PieceType::Rook, Black));
+    let move_ = Move::Promotion {
+        from: Position(B, _7),
+        to: Position(A, _8),
+        promotion: crate::chess::PromotionPieceType::Knight,
+    };
+
+    let result = apply_move(&board, &move_).unwrap();
+
+    assert_eq!(result.get_piece(B, _7), None);
+    assert_eq!(
+        result.get_piece(A, _8),
+        Some(Piece(PieceType::Knight, White))
+    );
+}
+
+#[test]
+fn test_sliding_piece_blocked_by_friendly_piece() {}
+
+fn test_long_slide_blocked_by_opponent_piece() {}
+
+#[test]
+fn test_must_not_move_king_into_check() {}
+
+#[test]
+fn test_must_not_leave_king_in_check() {}
+
+#[test]
+fn test_must_not_put_king_in_check() {}
+
+#[test]
+fn test_en_passant_must_not_put_king_in_check() {}
+
+#[test]
+fn test_castling_must_not_put_king_in_check() {}
+
+#[test]
+fn test_castling_must_not_move_king_through_check() {}
+
+#[test]
+fn test_valid_castling() {}
+
+#[test]
+fn test_missing_castling_rights() {}
+
+#[test]
+fn test_king_move_voids_castling_rights() {}
+
+#[test]
+fn test_rook_move_voids_castling_rights() {}
+
+#[test]
+fn test_rook_capture_voids_castling_rights() {}

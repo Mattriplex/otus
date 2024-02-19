@@ -16,6 +16,13 @@ enum PieceType {
     King,
 }
 
+enum PromotionPieceType {
+    Knight,
+    Bishop,
+    Rook,
+    Queen,
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Color {
     White,
@@ -94,6 +101,7 @@ impl fmt::Display for Piece {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Position(File, Rank);
 
 impl Position {
@@ -301,7 +309,7 @@ pub enum Move {
     Promotion {
         from: Position,
         to: Position,
-        piece: PieceType,
+        promotion: PromotionPieceType,
     },
 }
 
@@ -314,7 +322,6 @@ pub enum GameState {
 pub trait ChessPlayer {
     fn make_move(&self, board: &Board) -> Move;
 }
-
 
 pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) -> GameState {
     let mut board = Board::default();

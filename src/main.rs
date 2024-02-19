@@ -7,6 +7,6 @@ fn main() {
     match run_game(&human_player, &human_player) {
         chess::GameState::Mated(color) => println!("{} wins!", color.opponent()),
         chess::GameState::Stalemate => println!("Stalemate!"),
-        chess::GameState::InProgress => unreachable!("Game should have ended")
+        chess::GameState::InProgress => unreachable!("Game should have ended"),
     }
 }
