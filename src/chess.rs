@@ -16,6 +16,19 @@ enum PieceType {
     King,
 }
 
+impl fmt::Display for PieceType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PieceType::Pawn => write!(f, "Pawn"),
+            PieceType::Knight => write!(f, "Knight"),
+            PieceType::Bishop => write!(f, "Bishop"),
+            PieceType::Rook => write!(f, "Rook"),
+            PieceType::Queen => write!(f, "Queen"),
+            PieceType::King => write!(f, "King"),
+        }
+    }
+}
+
 enum PromotionPieceType {
     Knight,
     Bishop,
@@ -200,8 +213,12 @@ impl Board {
         self.squares[rank as usize][file as usize] = Some(piece);
     }
 
-    fn clear_square(&mut self, file: File, rank: Rank) {
-        self.squares[rank as usize][file as usize] = None;
+    fn set_piece_at(&mut self, pos: Position, piece: Piece) {
+        self.squares[pos.1 as usize][pos.0 as usize] = Some(piece);
+    }
+
+    fn clear_square(&mut self, pos: Position) {
+        self.squares[pos.1 as usize][pos.0 as usize] = None;
     }
 
     fn squares_from_fen(fen_squares: &str) -> Result<[[Option<Piece>; 8]; 8], String> {
