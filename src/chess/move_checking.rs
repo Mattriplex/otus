@@ -346,9 +346,41 @@ fn is_king_in_check(new_board: &Board) -> bool {
     return false;
 }
 
-//TODO: Rook capture removes castling rights
-//TODO: King move removes castling rights
-//TODO: Rook move removes castling rights
+fn update_castling_rights(new_board: &mut Board, src: &Position, dest: &Position) {
+    // short-circuit if no castling rights to update
+    if new_board.castling_rights == 0b0000 {
+        return;
+    }
+    let active_player = new_board.active_player;
+    // capturing the opponent's rook removes their castling rights
+    let (home_rank, opp_home_rank) = match active_player {
+        Color::White => (Rank::_1, Rank::_8),
+        Color::Black => (Rank::_8, Rank::_1),
+    };
+    if dest.clone() == Position(File::A, opp_home_rank) {
+        new_board.revoke_queenside_castling(active_player.opponent())
+    } else if dest.clone() == Position(File::H, opp_home_rank) {
+        new_board.revoke_kingside_castling(active_player.opponent())
+    }
+    // moving the king removes castling rights
+    let (can_kingside_castle, can_queenside_castle) = (
+        new_board.can_castle_kingside(active_player),
+        new_board.can_castle_queenside(active_player),
+    );
+    if (can_kingside_castle || can_queenside_castle) && src.clone() == Position(File::E, home_rank)
+    {
+        new_board.revoke_kingside_castling(active_player);
+        new_board.revoke_queenside_castling(active_player);
+    }
+    // moving a rook removes castling rights
+    if can_kingside_castle && src.clone() == Position(File::H, home_rank) {
+        new_board.revoke_kingside_castling(active_player);
+    }
+    if can_queenside_castle && src.clone() == Position(File::A, home_rank) {
+        new_board.revoke_queenside_castling(active_player);
+    }
+}
+
 //TODO: Double pawn move sets en passant target
 fn handle_normal_move(board: &Board, src: &Position, dest: &Position) -> Result<Board, String> {
     let src_piece = match board.get_piece_at(src) {
@@ -374,6 +406,7 @@ fn handle_normal_move(board: &Board, src: &Position, dest: &Position) -> Result<
         return Err("Move would leave king in check".to_string());
     }
 
+    update_castling_rights(&mut new_board, src, dest);
     new_board.active_player = board.active_player.opponent();
 
     Ok(new_board)

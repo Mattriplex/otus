@@ -332,6 +332,20 @@ impl Board {
             != 0
     }
 
+    fn revoke_kingside_castling(&mut self, color: Color) {
+        self.castling_rights &= match color {
+            Color::White => 0b0111,
+            Color::Black => 0b1101,
+        }
+    }
+
+    fn revoke_queenside_castling(&mut self, color: Color) {
+        self.castling_rights &= match color {
+            Color::White => 0b1011,
+            Color::Black => 0b1110,
+        }
+    }
+
     fn fmt_rank(&self, f: &mut fmt::Formatter, rank: usize) -> fmt::Result {
         for file in 0..8 {
             match self.squares[rank][file] {
