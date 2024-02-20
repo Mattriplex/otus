@@ -566,3 +566,5 @@ fn test_rook_capture_voids_castling_rights() {
     assert!(!result.can_castle_queenside(Color::White));
     assert!(result.can_castle_kingside(Color::White));
 }
+
+// TODO pawn check

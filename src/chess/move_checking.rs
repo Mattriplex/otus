@@ -318,6 +318,25 @@ fn is_king_in_check(new_board: &Board) -> bool {
         Some(pos) => pos,
         None => return false, // no king on the board
     };
+    
+    // check for pawn checks
+    let pawn_dir = match new_board.active_player {
+        Color::White => 1,
+        Color::Black => -1,
+    };
+    for pos in [
+        (1, pawn_dir),
+        (-1, pawn_dir),
+    ]
+    .iter()
+    .filter_map(|step| pos_plus(king_pos, *step))
+    {
+        if let Some(Piece(PieceType::Pawn, color)) = new_board.get_piece_at(pos) {
+            if color != new_board.active_player {
+                return true;
+            }
+        }
+    }
 
     // cast rays from king to check for threats
     for dir in DirIter::new(&ROOK_DIRS) {
