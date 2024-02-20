@@ -318,18 +318,15 @@ fn is_king_in_check(new_board: &Board) -> bool {
         Some(pos) => pos,
         None => return false, // no king on the board
     };
-    
+
     // check for pawn checks
     let pawn_dir = match new_board.active_player {
         Color::White => 1,
         Color::Black => -1,
     };
-    for pos in [
-        (1, pawn_dir),
-        (-1, pawn_dir),
-    ]
-    .iter()
-    .filter_map(|step| pos_plus(king_pos, *step))
+    for pos in [(1, pawn_dir), (-1, pawn_dir)]
+        .iter()
+        .filter_map(|step| pos_plus(king_pos, *step))
     {
         if let Some(Piece(PieceType::Pawn, color)) = new_board.get_piece_at(pos) {
             if color != new_board.active_player {
@@ -635,13 +632,13 @@ fn get_legal_moves(board: &Board) -> Vec<Move> {
             }
             if piece.0 == PieceType::Pawn {
                 for dest in [
-                    pos_plus(src, (0, pawn_dir)),
-                    pos_plus(src, (0, 2 * pawn_dir)),
-                    pos_plus(src, (1, pawn_dir)),
-                    pos_plus(src, (-1, pawn_dir)),
+                    (0, pawn_dir),
+                    (0, 2 * pawn_dir),
+                    (1, pawn_dir),
+                    (-1, pawn_dir),
                 ]
                 .iter()
-                .filter_map(|pos| *pos)
+                .filter_map(|step| pos_plus(src, *step))
                 {
                     let move_;
                     if dest.1 == opp_home_rank {
