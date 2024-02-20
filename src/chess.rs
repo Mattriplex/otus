@@ -206,7 +206,7 @@ impl Board {
         self.squares[rank as usize][file as usize]
     }
 
-    fn get_piece_at(&self, pos: &Position) -> Option<Piece> {
+    fn get_piece_at(&self, pos: Position) -> Option<Piece> {
         self.get_piece(pos.0, pos.1)
     }
 
