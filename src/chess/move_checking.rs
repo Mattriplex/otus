@@ -292,7 +292,7 @@ fn seek_king(board: &Board, color: Color) -> Option<Position> {
 fn is_king_in_check(new_board: &Board) -> bool {
     let king_pos = match seek_king(new_board, new_board.active_player) {
         Some(pos) => pos,
-        None => return false,
+        None => return false, // no king on the board
     };
 
     // cast rays from king to check for threats
@@ -322,6 +322,13 @@ fn is_king_in_check(new_board: &Board) -> bool {
     }
 
     // check knight moves
+    for pos in KnightHopIter::new(&king_pos) {
+        if let Some(Piece(PieceType::Knight, color)) = new_board.get_piece_at(&pos) {
+            if color != new_board.active_player {
+                return true;
+            }
+        }
+    }
 
     return false;
 }
@@ -350,6 +357,10 @@ fn handle_normal_move(board: &Board, src: &Position, dest: &Position) -> Result<
 
     handle_en_passant_move(&mut new_board);
     // check if king in check
+    if is_king_in_check(&new_board) {
+        return Err("Move would leave king in check".to_string());
+    }
+
     new_board.active_player = board.active_player.opponent();
 
     Ok(new_board)
@@ -397,11 +408,84 @@ fn check_and_handle_normal_move(board: &Board, src: &Position, dest: &Position) 
 }
 
 fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
-    unimplemented!("handle_castling_move")
+    // must have castling rights
+    if !board.can_castle_kingside(board.active_player) {
+        return Err("No castling rights".to_string());
+    }
+    // must not be in check
+    if is_king_in_check(board) {
+        return Err("Cannot castle while in check".to_string());
+    }
+    let home_rank = match board.active_player {
+        Color::White => Rank::_1,
+        Color::Black => Rank::_8,
+    };
+    let (king_pos, f_square, g_square, rook_pos) = (Position(File::E, home_rank), Position(File::F, home_rank), Position(File::G, home_rank), Position(File::H, home_rank));
+    let mut new_board = board.clone();
+    new_board.clear_square(king_pos);
+    // F square must be empty and not under attack
+    if let Some(_) = board.get_piece_at(&f_square) {
+        return Err("Cannot castle through occupied square".to_string());
+    }
+    new_board.set_piece_at(f_square, Piece(PieceType::King, board.active_player));
+    if is_king_in_check(&new_board) {
+        return Err("Cannot castle through check".to_string());
+    }
+    new_board.clear_square(f_square);
+    // G square must be empty and not under attack
+    if let Some(_) = board.get_piece_at(&g_square) {
+        return Err("Cannot castle through occupied square".to_string());
+    }
+    new_board.set_piece_at(g_square, Piece(PieceType::King, board.active_player));
+    if is_king_in_check(&new_board) {
+        return Err("Cannot castle into check".to_string());
+    }
+    new_board.clear_square(rook_pos);
+    new_board.set_piece_at(f_square, Piece(PieceType::Rook, board.active_player));
+    new_board.active_player = board.active_player.opponent();
+    Ok(new_board)    
 }
 
 fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
-    unimplemented!("handle_castling_move")
+    // must have castling rights
+    if !board.can_castle_queenside(board.active_player) {
+        return Err("No castling rights".to_string());
+    }
+    // must not be in check
+    if is_king_in_check(board) {
+        return Err("Cannot castle while in check".to_string());
+    }
+    let home_rank = match board.active_player {
+        Color::White => Rank::_1,
+        Color::Black => Rank::_8,
+    };
+    let (king_pos, d_square, c_square, b_square, rook_pos) = (Position(File::E, home_rank), Position(File::D, home_rank), Position(File::C, home_rank), Position(File::B, home_rank), Position(File::A, home_rank));
+    let mut new_board = board.clone();
+    new_board.clear_square(king_pos);
+    // D square must be empty and not under attack
+    if let Some(_) = board.get_piece_at(&d_square) {
+        return Err("Cannot castle through occupied square".to_string());
+    }
+    new_board.set_piece_at(d_square, Piece(PieceType::King, board.active_player));
+    if is_king_in_check(&new_board) {
+        return Err("Cannot castle through check".to_string());
+    }
+    new_board.clear_square(d_square);
+    // C square must be empty and not under attack
+    if let Some(_) = board.get_piece_at(&c_square) {
+        return Err("Cannot castle through occupied square".to_string());
+    }
+    new_board.set_piece_at(c_square, Piece(PieceType::King, board.active_player));
+    if is_king_in_check(&new_board) {
+        return Err("Cannot castle into check".to_string());
+    }
+    if let Some(_) = board.get_piece_at(&b_square) {
+        return Err("Cannot castle through occupied square".to_string());
+    }
+    new_board.clear_square(rook_pos);
+    new_board.set_piece_at(d_square, Piece(PieceType::Rook, board.active_player));
+    new_board.active_player = board.active_player.opponent();
+    Ok(new_board)
 }
 
 // TODO: switch active player
@@ -421,6 +505,19 @@ pub fn is_move_legal(board: &Board, move_: &Move) -> bool {
     }
 }
 
+fn get_legal_moves(board: &Board) -> Vec<Move> {
+    unimplemented!("get_legal_moves")
+}
+
 pub fn get_gamestate(board: &Board) -> GameState {
-    unimplemented!("get_gamestate")
+    let legal_moves = get_legal_moves(board);
+    if legal_moves.is_empty() {
+        if is_king_in_check(board) {
+            GameState::Mated(board.active_player)
+        } else {
+            GameState::Stalemate
+        }
+    } else {
+        GameState::InProgress
+    }
 }
