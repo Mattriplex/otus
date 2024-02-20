@@ -430,7 +430,7 @@ fn handle_normal_move(board: &Board, src: Position, dest: Position) -> Result<Bo
 }
 
 // this function does not check if the pawn belongs to the active player, handle_normal_move does that
-fn is_promotion_move(board: &Board, src: Position, dest: Position) -> bool {
+pub fn is_promotion_move(board: &Board, src: Position, dest: Position) -> bool {
     match board.get_piece_at(src) {
         Some(Piece(PieceType::Pawn, Color::White)) => dest.1 == Rank::_8,
         Some(Piece(PieceType::Pawn, Color::Black)) => dest.1 == Rank::_1,

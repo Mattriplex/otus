@@ -2,6 +2,8 @@ use std::fmt::{self, Display};
 
 use crate::chess::move_checking::is_move_legal;
 
+use self::move_checking::is_promotion_move;
+
 mod move_checking;
 #[cfg(test)]
 mod tests;
@@ -428,7 +430,26 @@ impl HumanPlayer {
                 }
                 let from = Position::from_string(parts[0]).unwrap();
                 let to = Position::from_string(parts[1]).unwrap();
-                let move_ = Move::Normal { from, to };
+                let move_;
+                if is_promotion_move(board, from, to) {
+                    println!("Enter promotion piece: ");
+                    let mut input = String::new();
+                    std::io::stdin().read_line(&mut input).unwrap();
+                    let promotion = match input.trim() {
+                        "n" => PromotionPieceType::Knight,
+                        "b" => PromotionPieceType::Bishop,
+                        "r" => PromotionPieceType::Rook,
+                        "q" => PromotionPieceType::Queen,
+                        _ => return Err("Invalid promotion piece".to_string()),
+                    };
+                    move_ = Move::Promotion {
+                        from,
+                        to,
+                        promotion,
+                    };
+                } else {
+                    move_ = Move::Normal { from, to };
+                }
                 if is_move_legal(board, &move_) {
                     Ok(move_)
                 } else {

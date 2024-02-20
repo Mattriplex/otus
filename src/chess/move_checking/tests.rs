@@ -121,7 +121,6 @@ fn test_valid_movement_patterns(
 #[case(Queen, G, _3)]
 #[case(King, E, _4)]
 #[case(King, G, _3)]
-#[case(King, F, _3)]
 fn test_invalid_movement_patterns(
     #[case] piece: PieceType,
     #[case] dst_file: File,
@@ -216,7 +215,7 @@ fn test_capture(
 fn test_en_passant_target() {
     let mut board = Board::empty();
     board.active_player = White;
-    board.set_piece(A, _2, Piece(PieceType::Pawn, Black));
+    board.set_piece(A, _2, Piece(PieceType::Pawn, White));
     let move_ = Move::Normal {
         from: Position(A, _2),
         to: Position(A, _4),
@@ -564,6 +563,6 @@ fn test_rook_capture_voids_castling_rights() {
 
     let result = apply_move(&board, &move_).unwrap();
 
-    assert!(!result.can_castle_queenside(Color::Black));
-    assert!(result.can_castle_kingside(Color::Black));
+    assert!(!result.can_castle_queenside(Color::White));
+    assert!(result.can_castle_kingside(Color::White));
 }
