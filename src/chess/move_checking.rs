@@ -381,6 +381,22 @@ fn update_castling_rights(new_board: &mut Board, src: Position, dest: Position) 
     }
 }
 
+fn update_en_passant_square(new_board: &mut Board, src: Position, dest: Position) {
+    let moved_piece = match new_board.get_piece_at(dest) {
+        Some(piece) => piece.0,
+        None => return,
+    };
+    let (home_rank, target_rank, hop_rank) = match new_board.active_player {
+        Color::White => (Rank::_2, Rank::_3, Rank::_4),
+        Color::Black => (Rank::_7, Rank::_6, Rank::_5),
+    };
+    if moved_piece == PieceType::Pawn && src.1 == home_rank && dest.1 == hop_rank {
+        new_board.en_passant_target = Some(Position(dest.0, target_rank));
+    } else {
+        new_board.en_passant_target = None;
+    }
+}
+
 //TODO: Double pawn move sets en passant target
 fn handle_normal_move(board: &Board, src: Position, dest: Position) -> Result<Board, String> {
     let src_piece = match board.get_piece_at(src) {
@@ -407,6 +423,7 @@ fn handle_normal_move(board: &Board, src: Position, dest: Position) -> Result<Bo
     }
 
     update_castling_rights(&mut new_board, src, dest);
+    update_en_passant_square(&mut new_board, src, dest);
     new_board.active_player = board.active_player.opponent();
 
     Ok(new_board)
