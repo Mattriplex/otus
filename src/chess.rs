@@ -65,6 +65,22 @@ enum Rank {
     _8 = 7,
 }
 
+impl Rank {
+    fn from_i8(i: i8) -> Option<Rank> {
+        match i {
+            0 => Some(Rank::_1),
+            1 => Some(Rank::_2),
+            2 => Some(Rank::_3),
+            3 => Some(Rank::_4),
+            4 => Some(Rank::_5),
+            5 => Some(Rank::_6),
+            6 => Some(Rank::_7),
+            7 => Some(Rank::_8),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u8)]
 enum File {
@@ -76,6 +92,22 @@ enum File {
     F = 5,
     G = 6,
     H = 7,
+}
+
+impl File {
+    fn from_i8(i: i8) -> Option<File> {
+        match i {
+            0 => Some(File::A),
+            1 => Some(File::B),
+            2 => Some(File::C),
+            3 => Some(File::D),
+            4 => Some(File::E),
+            5 => Some(File::F),
+            6 => Some(File::G),
+            7 => Some(File::H),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -158,6 +190,10 @@ impl Board {
 
     fn get_piece(&self, file: File, rank: Rank) -> Option<Piece> {
         self.squares[rank as usize][file as usize]
+    }
+
+    fn get_piece_at(&self, pos: &Position) -> Option<Piece> {
+        self.get_piece(pos.0, pos.1)
     }
 
     fn set_piece(&mut self, file: File, rank: Rank, piece: Piece) {
