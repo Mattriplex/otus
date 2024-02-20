@@ -3,7 +3,9 @@ mod tests;
 
 use crate::chess::{Board, Move};
 
-use super::{Color, File, GameState, Opponent, Piece, PieceType, Position, PromotionPieceType, Rank};
+use super::{
+    Color, File, GameState, Opponent, Piece, PieceType, Position, PromotionPieceType, Rank,
+};
 
 struct SlideIter {
     current: Position,
@@ -24,12 +26,13 @@ fn pos_plus(pos: &Position, step: (i8, i8)) -> Option<Position> {
 }
 
 fn pos_minus(dest: &Position, src: &Position) -> (i8, i8) {
-    ((dest.0 as i8) - (src.0 as i8), (dest.1 as i8) - (src.1 as i8))
+    (
+        (dest.0 as i8) - (src.0 as i8),
+        (dest.1 as i8) - (src.1 as i8),
+    )
 }
 
-
-
-const ROOK_DIRS: [(i8, i8); 4] = [(0, 1),(1, 0),(0, -1),(-1, 0)];
+const ROOK_DIRS: [(i8, i8); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
 const BISHOP_DIRS: [(i8, i8); 4] = [(1, 1), (1, -1), (-1, -1), (-1, 1)];
 
@@ -46,7 +49,7 @@ const KNIGHT_HOPS: [(i8, i8); 8] = [
 
 struct KnightHopIter {
     current: usize,
-    positions: [Option<Position>; 8]
+    positions: [Option<Position>; 8],
 }
 
 impl KnightHopIter {
@@ -61,7 +64,7 @@ impl KnightHopIter {
         }
         KnightHopIter {
             current: 0,
-            positions
+            positions,
         }
     }
 }
@@ -80,8 +83,6 @@ impl Iterator for KnightHopIter {
     }
 }
 
-
-
 struct DirIter {
     current: usize,
     dirs: &'static [(i8, i8)],
@@ -89,10 +90,7 @@ struct DirIter {
 
 impl DirIter {
     fn new(dirs: &'static [(i8, i8)]) -> DirIter {
-        DirIter {
-            current: 0,
-            dirs,
-        }
+        DirIter { current: 0, dirs }
     }
 }
 
@@ -151,7 +149,11 @@ impl SlideIter {
             panic!("SlideIter::new called with non-sliding move");
         }
         let current = pos_plus(&src, step).unwrap();
-        SlideIter { current, dest, step }
+        SlideIter {
+            current,
+            dest,
+            step,
+        }
     }
 }
 
@@ -159,10 +161,10 @@ impl Iterator for SlideIter {
     type Item = Position;
 
     fn next(&mut self) -> Option<Self::Item> {
-
         if self.current != self.dest {
             let curr = self.current;
-            self.current = pos_plus(&self.current, self.step).expect("SlideIter::next: step out of bounds");
+            self.current =
+                pos_plus(&self.current, self.step).expect("SlideIter::next: step out of bounds");
             Some(curr)
         } else {
             None
@@ -198,7 +200,12 @@ fn is_pawn_move(src: &Position, dest: &Position, player: Color) -> bool {
     }
 }
 
-fn check_piece_move_consistency(src: &Position, dest: &Position, piece: PieceType, player: Color) -> Result<(), String> {
+fn check_piece_move_consistency(
+    src: &Position,
+    dest: &Position,
+    piece: PieceType,
+    player: Color,
+) -> Result<(), String> {
     let consistent = match piece {
         PieceType::Queen => is_rook_move(src, dest) || is_bishop_move(src, dest),
         PieceType::Rook => is_rook_move(src, dest),
@@ -207,14 +214,19 @@ fn check_piece_move_consistency(src: &Position, dest: &Position, piece: PieceTyp
         PieceType::King => is_king_move(src, dest),
         PieceType::Pawn => is_pawn_move(src, dest, player),
     };
-    if consistent { 
-        return Ok(())
-    } else { 
-        return Err(format!("{} cannot move this way", piece)) 
+    if consistent {
+        return Ok(());
+    } else {
+        return Err(format!("{} cannot move this way", piece));
     };
 }
 
-fn check_move_blocked(piece: PieceType, src: &Position, dest: &Position, board: &Board) -> Result<(), String> {
+fn check_move_blocked(
+    piece: PieceType,
+    src: &Position,
+    dest: &Position,
+    board: &Board,
+) -> Result<(), String> {
     // All pieces: cannot move to a square occupied by a piece of the same color
     // this also filters null moves (src == dest)
     board.get_piece_at(dest).map_or(Ok(()), |dest_piece| {
@@ -269,7 +281,8 @@ fn handle_en_passant_move(new_board: &mut Board) {
     let captured_pawn_pos = match new_board.active_player {
         Color::White => pos_plus(&en_passant_target, (0, -1)),
         Color::Black => pos_plus(&en_passant_target, (0, 1)),
-    }.expect("En passant target neighbour out of bounds");
+    }
+    .expect("En passant target neighbour out of bounds");
     new_board.clear_square(captured_pawn_pos);
     new_board.en_passant_target = None;
 }
@@ -377,10 +390,14 @@ fn is_promotion_move(board: &Board, src: &Position, dest: &Position) -> bool {
 
 fn handle_promotion_move(board: &Board, move_: &Move) -> Result<Board, String> {
     let (src, dest, promotion) = match move_ {
-        Move::Promotion{from, to, promotion} => (from, to, promotion),
+        Move::Promotion {
+            from,
+            to,
+            promotion,
+        } => (from, to, promotion),
         _ => unreachable!(),
     };
-    
+
     if !is_promotion_move(board, src, dest) {
         return Err("Not a promotion move".to_string());
     }
@@ -399,7 +416,11 @@ fn handle_promotion_move(board: &Board, move_: &Move) -> Result<Board, String> {
     Ok(new_board)
 }
 
-fn check_and_handle_normal_move(board: &Board, src: &Position, dest: &Position) -> Result<Board, String> {
+fn check_and_handle_normal_move(
+    board: &Board,
+    src: &Position,
+    dest: &Position,
+) -> Result<Board, String> {
     if is_promotion_move(board, src, dest) {
         Err("Move is a promotion but no piece was specified".to_string())
     } else {
@@ -420,7 +441,12 @@ fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
         Color::White => Rank::_1,
         Color::Black => Rank::_8,
     };
-    let (king_pos, f_square, g_square, rook_pos) = (Position(File::E, home_rank), Position(File::F, home_rank), Position(File::G, home_rank), Position(File::H, home_rank));
+    let (king_pos, f_square, g_square, rook_pos) = (
+        Position(File::E, home_rank),
+        Position(File::F, home_rank),
+        Position(File::G, home_rank),
+        Position(File::H, home_rank),
+    );
     let mut new_board = board.clone();
     new_board.clear_square(king_pos);
     // F square must be empty and not under attack
@@ -443,7 +469,7 @@ fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
     new_board.clear_square(rook_pos);
     new_board.set_piece_at(f_square, Piece(PieceType::Rook, board.active_player));
     new_board.active_player = board.active_player.opponent();
-    Ok(new_board)    
+    Ok(new_board)
 }
 
 fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
@@ -459,7 +485,13 @@ fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
         Color::White => Rank::_1,
         Color::Black => Rank::_8,
     };
-    let (king_pos, d_square, c_square, b_square, rook_pos) = (Position(File::E, home_rank), Position(File::D, home_rank), Position(File::C, home_rank), Position(File::B, home_rank), Position(File::A, home_rank));
+    let (king_pos, d_square, c_square, b_square, rook_pos) = (
+        Position(File::E, home_rank),
+        Position(File::D, home_rank),
+        Position(File::C, home_rank),
+        Position(File::B, home_rank),
+        Position(File::A, home_rank),
+    );
     let mut new_board = board.clone();
     new_board.clear_square(king_pos);
     // D square must be empty and not under attack
@@ -491,10 +523,10 @@ fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
 // TODO: switch active player
 pub fn apply_move(board: &Board, move_: &Move) -> Result<Board, String> {
     match move_ {
-        Move::Normal{from, to} => check_and_handle_normal_move(board, from, to),
-        Move::CastleKingside{..} => handle_kingside_castle(board),
-        Move::CastleQueenside{..} => handle_queenside_castle(board),
-        Move::Promotion{..} => handle_promotion_move(board, move_),
+        Move::Normal { from, to } => check_and_handle_normal_move(board, from, to),
+        Move::CastleKingside { .. } => handle_kingside_castle(board),
+        Move::CastleQueenside { .. } => handle_queenside_castle(board),
+        Move::Promotion { .. } => handle_promotion_move(board, move_),
     }
 }
 

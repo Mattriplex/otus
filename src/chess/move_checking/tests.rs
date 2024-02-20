@@ -520,7 +520,9 @@ fn test_king_move_voids_white_castling_rights() {
 
     let result = apply_move(&board, &move_).unwrap();
 
-    assert!(!(result.can_castle_kingside(Color::White) || result.can_castle_queenside(Color::White)));
+    assert!(
+        !(result.can_castle_kingside(Color::White) || result.can_castle_queenside(Color::White))
+    );
 }
 
 #[test]
@@ -533,7 +535,9 @@ fn test_king_move_voids_black_castling_rights() {
 
     let result = apply_move(&board, &move_).unwrap();
 
-    assert!(!(result.can_castle_kingside(Color::Black) || result.can_castle_queenside(Color::Black)));
+    assert!(
+        !(result.can_castle_kingside(Color::Black) || result.can_castle_queenside(Color::Black))
+    );
 }
 
 #[test]
