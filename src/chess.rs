@@ -180,6 +180,7 @@ impl Position {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Board {
     squares: [[Option<Piece>; 8]; 8],
     active_player: Color,

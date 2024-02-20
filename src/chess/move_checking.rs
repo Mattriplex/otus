@@ -3,7 +3,7 @@ mod tests;
 
 use crate::chess::{Board, Move};
 
-use super::{Color, File, GameState, Piece, PieceType, Position, Rank};
+use super::{Color, File, GameState, Opponent, Piece, PieceType, Position, PromotionPieceType, Rank};
 
 struct SlideIter {
     current: Position,
@@ -11,12 +11,133 @@ struct SlideIter {
     step: (i8, i8),
 }
 
-fn pos_plus(pos: &Position, step: (i8, i8)) -> Position {
-    Position(File::from_i8(pos.0 as i8 + step.0).unwrap(), Rank::from_i8(pos.1 as i8 + step.1).unwrap())
+fn pos_plus(pos: &Position, step: (i8, i8)) -> Option<Position> {
+    let new_file = match File::from_i8(pos.0 as i8 + step.0) {
+        Some(file) => file,
+        None => return None,
+    };
+    let new_rank = match Rank::from_i8(pos.1 as i8 + step.1) {
+        Some(rank) => rank,
+        None => return None,
+    };
+    Some(Position(new_file, new_rank))
 }
 
 fn pos_minus(dest: &Position, src: &Position) -> (i8, i8) {
     ((dest.0 as i8) - (src.0 as i8), (dest.1 as i8) - (src.1 as i8))
+}
+
+
+
+const ROOK_DIRS: [(i8, i8); 4] = [(0, 1),(1, 0),(0, -1),(-1, 0)];
+
+const BISHOP_DIRS: [(i8, i8); 4] = [(1, 1), (1, -1), (-1, -1), (-1, 1)];
+
+const KNIGHT_HOPS: [(i8, i8); 8] = [
+    (1, 2),
+    (2, 1),
+    (2, -1),
+    (1, -2),
+    (-1, -2),
+    (-2, -1),
+    (-2, 1),
+    (-1, 2),
+];
+
+struct KnightHopIter {
+    current: usize,
+    positions: [Option<Position>; 8]
+}
+
+impl KnightHopIter {
+    fn new(origin: &Position) -> KnightHopIter {
+        let mut p_idx = 0;
+        let mut positions = [None; 8];
+        for hop in KNIGHT_HOPS.iter() {
+            if let Some(pos) = pos_plus(origin, *hop) {
+                positions[p_idx] = Some(pos);
+                p_idx += 1;
+            }
+        }
+        KnightHopIter {
+            current: 0,
+            positions
+        }
+    }
+}
+
+impl Iterator for KnightHopIter {
+    type Item = Position;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current < 8 {
+            let pos = self.positions[self.current];
+            self.current += 1;
+            pos
+        } else {
+            None
+        }
+    }
+}
+
+
+
+struct DirIter {
+    current: usize,
+    dirs: &'static [(i8, i8)],
+}
+
+impl DirIter {
+    fn new(dirs: &'static [(i8, i8)]) -> DirIter {
+        DirIter {
+            current: 0,
+            dirs,
+        }
+    }
+}
+
+impl Iterator for DirIter {
+    type Item = (i8, i8);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current < self.dirs.len() {
+            let dir = self.dirs[self.current];
+            self.current += 1;
+            Some(dir)
+        } else {
+            None
+        }
+    }
+}
+
+struct RayIter {
+    base: Position,
+    dir: (i8, i8),
+    current: Position,
+}
+
+impl RayIter {
+    fn new(base: Position, dir: (i8, i8)) -> RayIter {
+        RayIter {
+            base,
+            dir,
+            current: base,
+        }
+    }
+}
+
+impl Iterator for RayIter {
+    type Item = Position;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match pos_plus(&self.current, self.dir) {
+            Some(pos) => {
+                self.current = pos;
+                Some(pos)
+            }
+            None => None,
+        }
+    }
 }
 
 impl SlideIter {
@@ -29,7 +150,7 @@ impl SlideIter {
         if !is_rook_move(&src, &dest) && !is_bishop_move(&src, &dest) {
             panic!("SlideIter::new called with non-sliding move");
         }
-        let current = pos_plus(&src, step);
+        let current = pos_plus(&src, step).unwrap();
         SlideIter { current, dest, step }
     }
 }
@@ -41,7 +162,7 @@ impl Iterator for SlideIter {
 
         if self.current != self.dest {
             let curr = self.current;
-            self.current = pos_plus(&self.current, self.step);
+            self.current = pos_plus(&self.current, self.step).expect("SlideIter::next: step out of bounds");
             Some(curr)
         } else {
             None
@@ -72,8 +193,8 @@ fn is_king_move(src: &Position, dest: &Position) -> bool {
 fn is_pawn_move(src: &Position, dest: &Position, player: Color) -> bool {
     let (x, y) = pos_minus(dest, src);
     match player {
-        Color::White => (x.abs() <= 1 && y == 1) || (x == 0 && y == 2 && src.1 == 2)
-        Color::Black => (x.abs() <= 1 && y == -1) || (x == 0 && y == -2 && src.1 == 7)
+        Color::White => (x.abs() <= 1 && y == 1) || (x == 0 && y == 2 && src.1 == Rank::_2),
+        Color::Black => (x.abs() <= 1 && y == -1) || (x == 0 && y == -2 && src.1 == Rank::_7),
     }
 }
 
@@ -148,11 +269,67 @@ fn handle_en_passant_move(new_board: &mut Board) {
     let captured_pawn_pos = match new_board.active_player {
         Color::White => pos_plus(&en_passant_target, (0, -1)),
         Color::Black => pos_plus(&en_passant_target, (0, 1)),
-    };
+    }.expect("En passant target neighbour out of bounds");
     new_board.clear_square(captured_pawn_pos);
     new_board.en_passant_target = None;
 }
 
+fn seek_king(board: &Board, color: Color) -> Option<Position> {
+    for file in 0..8 {
+        for rank in 0..8 {
+            let pos = Position(File::from_i8(file).unwrap(), Rank::from_i8(rank).unwrap());
+            if let Some(Piece(PieceType::King, c)) = board.get_piece_at(&pos) {
+                if c == color {
+                    return Some(pos);
+                }
+            }
+        }
+    }
+    return None;
+}
+
+// new_board: Move is already carried out, but active player is not switched
+fn is_king_in_check(new_board: &Board) -> bool {
+    let king_pos = match seek_king(new_board, new_board.active_player) {
+        Some(pos) => pos,
+        None => return false,
+    };
+
+    // cast rays from king to check for threats
+    for dir in DirIter::new(&ROOK_DIRS) {
+        for pos in RayIter::new(king_pos, dir) {
+            if let Some(Piece(piece, color)) = new_board.get_piece_at(&pos) {
+                if color == new_board.active_player {
+                    break;
+                }
+                if piece == PieceType::Rook || piece == PieceType::Queen {
+                    return true;
+                }
+            }
+        }
+    }
+    for dir in DirIter::new(&BISHOP_DIRS) {
+        for pos in RayIter::new(king_pos, dir) {
+            if let Some(Piece(piece, color)) = new_board.get_piece_at(&pos) {
+                if color == new_board.active_player {
+                    break;
+                }
+                if piece == PieceType::Bishop || piece == PieceType::Queen {
+                    return true;
+                }
+            }
+        }
+    }
+
+    // check knight moves
+
+    return false;
+}
+
+//TODO: Rook capture removes castling rights
+//TODO: King move removes castling rights
+//TODO: Rook move removes castling rights
+//TODO: Double pawn move sets en passant target
 fn handle_normal_move(board: &Board, src: &Position, dest: &Position) -> Result<Board, String> {
     let src_piece = match board.get_piece_at(src) {
         Some(piece) => piece,
@@ -170,23 +347,69 @@ fn handle_normal_move(board: &Board, src: &Position, dest: &Position) -> Result<
     let mut new_board = board.clone();
     new_board.set_piece_at(*dest, src_piece);
     new_board.clear_square(*src);
-       
+
+    handle_en_passant_move(&mut new_board);
+    // check if king in check
+    new_board.active_player = board.active_player.opponent();
+
+    Ok(new_board)
 }
 
-fn handle_castling_move(board: &Board, move_: &Move) -> Result<Board, String> {
-    unimplemented!("handle_castling_move")
+// this function does not check if the pawn belongs to the active player, handle_normal_move does that
+fn is_promotion_move(board: &Board, src: &Position, dest: &Position) -> bool {
+    match board.get_piece_at(src) {
+        Some(Piece(PieceType::Pawn, Color::White)) => dest.1 == Rank::_8,
+        Some(Piece(PieceType::Pawn, Color::Black)) => dest.1 == Rank::_1,
+        _ => false,
+    }
 }
 
 fn handle_promotion_move(board: &Board, move_: &Move) -> Result<Board, String> {
-    unimplemented!("handle_promotion_move")
+    let (src, dest, promotion) = match move_ {
+        Move::Promotion{from, to, promotion} => (from, to, promotion),
+        _ => unreachable!(),
+    };
+    
+    if !is_promotion_move(board, src, dest) {
+        return Err("Not a promotion move".to_string());
+    }
+
+    let mut new_board = handle_normal_move(board, src, dest)?;
+
+    // replace pawn with promoted piece
+    let promotion_type = match promotion {
+        PromotionPieceType::Queen => PieceType::Queen,
+        PromotionPieceType::Rook => PieceType::Rook,
+        PromotionPieceType::Bishop => PieceType::Bishop,
+        PromotionPieceType::Knight => PieceType::Knight,
+    };
+    new_board.set_piece_at(*dest, Piece(promotion_type, board.active_player));
+
+    Ok(new_board)
+}
+
+fn check_and_handle_normal_move(board: &Board, src: &Position, dest: &Position) -> Result<Board, String> {
+    if is_promotion_move(board, src, dest) {
+        Err("Move is a promotion but no piece was specified".to_string())
+    } else {
+        handle_normal_move(board, src, dest)
+    }
+}
+
+fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
+    unimplemented!("handle_castling_move")
+}
+
+fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
+    unimplemented!("handle_castling_move")
 }
 
 // TODO: switch active player
 pub fn apply_move(board: &Board, move_: &Move) -> Result<Board, String> {
     match move_ {
-        Move::Normal{from, to} => handle_normal_move(board, from, to),
-        Move::CastleKingside{..} => handle_castling_move(board, move_),
-        Move::CastleQueenside{..} => handle_castling_move(board, move_),
+        Move::Normal{from, to} => check_and_handle_normal_move(board, from, to),
+        Move::CastleKingside{..} => handle_kingside_castle(board),
+        Move::CastleQueenside{..} => handle_queenside_castle(board),
         Move::Promotion{..} => handle_promotion_move(board, move_),
     }
 }
