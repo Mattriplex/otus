@@ -1,5 +1,3 @@
-use std::result;
-
 use rstest::rstest;
 
 use crate::chess::move_checking::apply_move;
@@ -569,3 +567,4 @@ fn test_rook_capture_voids_castling_rights() {
 
 // TODO pawn check
 // Castling revoked by castling
+// Check blocked by enemy piece

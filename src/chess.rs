@@ -511,7 +511,6 @@ impl ChessPlayer for HumanPlayer {
     fn make_move(&self, board: &Board) -> Move {
         println!("{}", board);
         println!("You are {}. Enter your move: ", board.active_player);
-        let mut input = String::new();
         loop {
             match self.try_get_move_input(board) {
                 Ok(m) => return m,

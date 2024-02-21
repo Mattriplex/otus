@@ -339,10 +339,11 @@ fn is_king_in_check(new_board: &Board) -> bool {
     for dir in DirIter::new(&ROOK_DIRS) {
         for pos in RayIter::new(king_pos, dir) {
             if let Some(Piece(piece, color)) = new_board.get_piece_at(pos) {
-                if color == new_board.active_player {
+                let is_rook_or_queen = piece == PieceType::Rook || piece == PieceType::Queen;
+                if color == new_board.active_player || !is_rook_or_queen{
                     break;
                 }
-                if piece == PieceType::Rook || piece == PieceType::Queen {
+                if is_rook_or_queen {
                     return true;
                 }
             }
@@ -351,12 +352,22 @@ fn is_king_in_check(new_board: &Board) -> bool {
     for dir in DirIter::new(&BISHOP_DIRS) {
         for pos in RayIter::new(king_pos, dir) {
             if let Some(Piece(piece, color)) = new_board.get_piece_at(pos) {
-                if color == new_board.active_player {
+                let is_bishop_or_queen = piece == PieceType::Bishop || piece == PieceType::Queen;
+                if color == new_board.active_player || !is_bishop_or_queen {
                     break;
                 }
-                if piece == PieceType::Bishop || piece == PieceType::Queen {
+                if is_bishop_or_queen {
                     return true;
                 }
+            }
+        }
+    }
+
+    // check king moves
+    for pos in ALL_DIRS.iter().filter_map(|dir| pos_plus(king_pos, *dir)) {
+        if let Some(Piece(PieceType::King, color)) = new_board.get_piece_at(pos) {
+            if color != new_board.active_player {
+                return true;
             }
         }
     }
