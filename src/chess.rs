@@ -1,22 +1,19 @@
 use std::fmt::{self, Display};
 
-use crate::chess::move_checking::is_move_legal;
+use crate::chess::models::Piece;
 
-use self::move_checking::is_promotion_move;
+use self::{
+    models::{Color, File, GameState, Move, PieceType, Pos, PromotionPieceType, Rank},
+    player::ChessPlayer,
+};
 
 pub mod move_checking;
+
+pub mod models;
+pub mod player;
+
 #[cfg(test)]
 mod tests;
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-enum PieceType {
-    Pawn,
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-    King,
-}
 
 impl fmt::Display for PieceType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -29,19 +26,6 @@ impl fmt::Display for PieceType {
             PieceType::King => write!(f, "King"),
         }
     }
-}
-
-enum PromotionPieceType {
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum Color {
-    White,
-    Black,
 }
 
 pub trait Opponent {
@@ -67,19 +51,6 @@ impl Display for Color {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-#[repr(u8)]
-enum Rank {
-    _1 = 0,
-    _2 = 1,
-    _3 = 2,
-    _4 = 3,
-    _5 = 4,
-    _6 = 5,
-    _7 = 6,
-    _8 = 7,
-}
-
 impl Rank {
     fn from_i8(i: i8) -> Option<Rank> {
         match i {
@@ -100,19 +71,6 @@ impl Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", *self as u8 + 1)
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-#[repr(u8)]
-enum File {
-    A = 0,
-    B = 1,
-    C = 2,
-    D = 3,
-    E = 4,
-    F = 5,
-    G = 6,
-    H = 7,
 }
 
 impl File {
@@ -137,9 +95,6 @@ impl Display for File {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-struct Piece(PieceType, Color);
-
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let symbol = match self {
@@ -160,11 +115,8 @@ impl fmt::Display for Piece {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Position(File, Rank);
-
-impl Position {
-    fn from_string(s: &str) -> Result<Position, String> {
+impl Pos {
+    fn from_string(s: &str) -> Result<Pos, String> {
         if s.len() != 2 {
             return Err("Expected 2 characters".to_string());
         }
@@ -190,11 +142,11 @@ impl Position {
             '8' => Ok(Rank::_8),
             _ => Err("Invalid rank".to_string()),
         }?;
-        Ok(Position(file, rank))
+        Ok(Pos(file, rank))
     }
 }
 
-impl fmt::Display for Position {
+impl fmt::Display for Pos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}{}", self.0, self.1)
     }
@@ -205,7 +157,7 @@ pub struct Board {
     squares: [[Option<Piece>; 8]; 8],
     active_player: Color,
     castling_rights: u8, // KQkq
-    en_passant_target: Option<Position>,
+    en_passant_target: Option<Pos>,
 }
 
 impl Board {
@@ -226,7 +178,7 @@ impl Board {
         self.squares[rank as usize][file as usize]
     }
 
-    fn get_piece_at(&self, pos: Position) -> Option<Piece> {
+    fn get_piece_at(&self, pos: Pos) -> Option<Piece> {
         self.get_piece(pos.0, pos.1)
     }
 
@@ -234,11 +186,11 @@ impl Board {
         self.squares[rank as usize][file as usize] = Some(piece);
     }
 
-    fn set_piece_at(&mut self, pos: Position, piece: Piece) {
+    fn set_piece_at(&mut self, pos: Pos, piece: Piece) {
         self.squares[pos.1 as usize][pos.0 as usize] = Some(piece);
     }
 
-    fn clear_square(&mut self, pos: Position) {
+    fn clear_square(&mut self, pos: Pos) {
         self.squares[pos.1 as usize][pos.0 as usize] = None;
     }
 
@@ -324,7 +276,7 @@ impl Board {
         let castling_rights = Self::decode_fen_castling_rights(parts[2])?;
         let en_passant_target = match parts[3] {
             "-" => None,
-            s => Some(Position::from_string(s)?),
+            s => Some(Pos::from_string(s)?),
         };
         Ok(Board {
             squares,
@@ -455,29 +407,18 @@ impl fmt::Display for Board {
     }
 }
 
-pub enum Move {
-    Normal {
-        from: Position,
-        to: Position,
-    },
-    CastleKingside,
-    CastleQueenside,
-    Promotion {
-        from: Position,
-        to: Position,
-        promotion: PromotionPieceType,
-    },
-}
-
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Move::Normal { from, to } => write!(f, "{}-{}", from, to),
+            Move::Normal {
+                src: from,
+                dest: to,
+            } => write!(f, "{}-{}", from, to),
             Move::CastleKingside => write!(f, "0-0"),
             Move::CastleQueenside => write!(f, "0-0-0"),
             Move::Promotion {
-                from,
-                to,
+                src: from,
+                dest: to,
                 promotion,
             } => {
                 write!(
@@ -497,16 +438,6 @@ impl fmt::Display for Move {
     }
 }
 
-pub enum GameState {
-    InProgress,
-    Mated(Color),
-    Stalemate,
-}
-
-pub trait ChessPlayer {
-    fn make_move(&self, board: &Board) -> Move;
-}
-
 pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) -> GameState {
     let mut board = Board::default();
     loop {
@@ -524,65 +455,6 @@ pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) 
             }
             // Illegal move, game is forfeit
             Err(_) => return GameState::Mated(board.active_player),
-        }
-    }
-}
-
-pub struct HumanPlayer;
-
-impl HumanPlayer {
-    fn try_get_move_input(&self, board: &Board) -> Result<Move, String> {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        match input.trim() {
-            "0-0" => Ok(Move::CastleKingside),
-            "0-0-0" => Ok(Move::CastleQueenside),
-            s => {
-                let parts: Vec<&str> = s.split_whitespace().collect();
-                if parts.len() != 2 {
-                    return Err("Error parsing move".to_string());
-                }
-                let from = Position::from_string(parts[0]).unwrap();
-                let to = Position::from_string(parts[1]).unwrap();
-                let move_;
-                if is_promotion_move(board, from, to) {
-                    println!("Enter promotion piece: ");
-                    let mut input = String::new();
-                    std::io::stdin().read_line(&mut input).unwrap();
-                    let promotion = match input.trim() {
-                        "n" => PromotionPieceType::Knight,
-                        "b" => PromotionPieceType::Bishop,
-                        "r" => PromotionPieceType::Rook,
-                        "q" => PromotionPieceType::Queen,
-                        _ => return Err("Invalid promotion piece".to_string()),
-                    };
-                    move_ = Move::Promotion {
-                        from,
-                        to,
-                        promotion,
-                    };
-                } else {
-                    move_ = Move::Normal { from, to };
-                }
-                if is_move_legal(board, &move_) {
-                    Ok(move_)
-                } else {
-                    Err("Illegal move".to_string())
-                }
-            }
-        }
-    }
-}
-
-impl ChessPlayer for HumanPlayer {
-    fn make_move(&self, board: &Board) -> Move {
-        println!("{}", board);
-        println!("You are {}. Enter your move: ", board.active_player);
-        loop {
-            match self.try_get_move_input(board) {
-                Ok(m) => return m,
-                Err(e) => println!("{}, try again!", e),
-            }
         }
     }
 }

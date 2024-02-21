@@ -1,5 +1,7 @@
+use chess::models::GameState;
 use chess::move_checking::get_legal_moves;
-use chess::{run_game, Board, HumanPlayer, Opponent};
+use chess::player::human_player::HumanPlayer;
+use chess::{run_game, Board, Opponent};
 
 mod chess;
 
@@ -12,8 +14,8 @@ fn main() {
     }
 
     match run_game(&human_player, &human_player) {
-        chess::GameState::Mated(color) => println!("{} wins!", color.opponent()),
-        chess::GameState::Stalemate => println!("Stalemate!"),
-        chess::GameState::InProgress => unreachable!("Game should have ended"),
+        GameState::Mated(color) => println!("{} wins!", color.opponent()),
+        GameState::Stalemate => println!("Stalemate!"),
+        GameState::InProgress => unreachable!("Game should have ended"),
     }
 }
