@@ -1,10 +1,8 @@
-pub struct HumanPlayer;
 
 use crate::chess::PromotionPieceType;
 
 use super::{
-    move_checking::{is_move_legal, is_promotion_move},
-    Board, ChessPlayer, Move, Square,
+    move_checking::{is_move_legal, is_promotion_move}, Board, ChessPlayer, HumanPlayer, Move, Square
 };
 
 impl HumanPlayer {

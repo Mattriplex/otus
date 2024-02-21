@@ -14,6 +14,7 @@ pub enum PieceType {
     King,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PromotionPieceType {
     Knight,
     Bishop,
@@ -53,6 +54,7 @@ pub struct Piece(pub PieceType, pub Color);
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Square(pub File, pub Rank);
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum Move {
     Normal {
         src: Square,
