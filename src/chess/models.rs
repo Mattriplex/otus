@@ -51,18 +51,18 @@ pub enum File {
 pub struct Piece(pub PieceType, pub Color);
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Pos(pub File, pub Rank);
+pub struct Square(pub File, pub Rank);
 
 pub enum Move {
     Normal {
-        src: Pos,
-        dest: Pos,
+        src: Square,
+        dest: Square,
     },
     CastleKingside,
     CastleQueenside,
     Promotion {
-        src: Pos,
-        dest: Pos,
+        src: Square,
+        dest: Square,
         promotion: PromotionPieceType,
     },
 }

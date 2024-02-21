@@ -1,6 +1,6 @@
 use crate::chess::*;
 
-use self::move_checking::{apply_move, get_legal_moves};
+use self::move_checking::apply_move;
 
 #[test]
 fn test_fen_default_board() {

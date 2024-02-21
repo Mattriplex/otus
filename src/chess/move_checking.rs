@@ -1,4 +1,4 @@
-mod square_utils;
+pub mod square_utils;
 #[cfg(test)]
 mod tests;
 
@@ -8,9 +8,16 @@ use self::square_utils::{
     is_move_pseudo_legal, pos_plus, DirIter, KnightHopIter, RayIter, SlideIter,
 };
 
-use super::{Color, File, GameState, Opponent, Piece, PieceType, Pos, PromotionPieceType, Rank};
+use super::{
+    model_utils::Opponent, Color, File, Piece, PieceType, PromotionPieceType, Rank, Square,
+};
 
-fn check_move_blocked(piece: PieceType, src: Pos, dest: Pos, board: &Board) -> Result<(), String> {
+fn check_move_blocked(
+    piece: PieceType,
+    src: Square,
+    dest: Square,
+    board: &Board,
+) -> Result<(), String> {
     // All pieces: cannot move to a square occupied by a piece of the same color
     // this also filters null moves (src == dest)
     board.get_piece_at(dest).map_or(Ok(()), |dest_piece| {
@@ -77,10 +84,10 @@ fn handle_en_passant_move(new_board: &mut Board) {
     new_board.en_passant_target = None;
 }
 
-fn seek_king(board: &Board, color: Color) -> Option<Pos> {
+fn seek_king(board: &Board, color: Color) -> Option<Square> {
     for file in 0..8 {
         for rank in 0..8 {
-            let pos = Pos(File::from_i8(file).unwrap(), Rank::from_i8(rank).unwrap());
+            let pos = Square(File::from_i8(file).unwrap(), Rank::from_i8(rank).unwrap());
             if let Some(Piece(PieceType::King, c)) = board.get_piece_at(pos) {
                 if c == color {
                     return Some(pos);
@@ -92,7 +99,7 @@ fn seek_king(board: &Board, color: Color) -> Option<Pos> {
 }
 
 // new_board: Move is already carried out, but active player is not switched
-fn is_king_in_check(new_board: &Board) -> bool {
+pub fn is_king_in_check(new_board: &Board) -> bool {
     let king_pos = match seek_king(new_board, new_board.active_player) {
         Some(pos) => pos,
         None => return false, // no king on the board
@@ -163,7 +170,7 @@ fn is_king_in_check(new_board: &Board) -> bool {
     return false;
 }
 
-fn update_castling_rights(new_board: &mut Board, src: Pos, dest: Pos) {
+fn update_castling_rights(new_board: &mut Board, src: Square, dest: Square) {
     // short-circuit if no castling rights to update
     if new_board.castling_rights == 0b0000 {
         return;
@@ -174,9 +181,9 @@ fn update_castling_rights(new_board: &mut Board, src: Pos, dest: Pos) {
         Color::White => (Rank::_1, Rank::_8),
         Color::Black => (Rank::_8, Rank::_1),
     };
-    if dest.clone() == Pos(File::A, opp_home_rank) {
+    if dest.clone() == Square(File::A, opp_home_rank) {
         new_board.revoke_queenside_castling(active_player.opponent())
-    } else if dest.clone() == Pos(File::H, opp_home_rank) {
+    } else if dest.clone() == Square(File::H, opp_home_rank) {
         new_board.revoke_kingside_castling(active_player.opponent())
     }
     // moving the king removes castling rights
@@ -184,20 +191,20 @@ fn update_castling_rights(new_board: &mut Board, src: Pos, dest: Pos) {
         new_board.can_castle_kingside(active_player),
         new_board.can_castle_queenside(active_player),
     );
-    if (can_kingside_castle || can_queenside_castle) && src.clone() == Pos(File::E, home_rank) {
+    if (can_kingside_castle || can_queenside_castle) && src.clone() == Square(File::E, home_rank) {
         new_board.revoke_kingside_castling(active_player);
         new_board.revoke_queenside_castling(active_player);
     }
     // moving a rook removes castling rights
-    if can_kingside_castle && src.clone() == Pos(File::H, home_rank) {
+    if can_kingside_castle && src.clone() == Square(File::H, home_rank) {
         new_board.revoke_kingside_castling(active_player);
     }
-    if can_queenside_castle && src.clone() == Pos(File::A, home_rank) {
+    if can_queenside_castle && src.clone() == Square(File::A, home_rank) {
         new_board.revoke_queenside_castling(active_player);
     }
 }
 
-fn update_en_passant_square(new_board: &mut Board, src: Pos, dest: Pos) {
+fn update_en_passant_square(new_board: &mut Board, src: Square, dest: Square) {
     let moved_piece = match new_board.get_piece_at(dest) {
         Some(piece) => piece.0,
         None => unreachable!(),
@@ -207,13 +214,13 @@ fn update_en_passant_square(new_board: &mut Board, src: Pos, dest: Pos) {
         Color::Black => (Rank::_7, Rank::_6, Rank::_5),
     };
     if moved_piece == PieceType::Pawn && src.1 == home_rank && dest.1 == hop_rank {
-        new_board.en_passant_target = Some(Pos(dest.0, target_rank));
+        new_board.en_passant_target = Some(Square(dest.0, target_rank));
     } else {
         new_board.en_passant_target = None;
     }
 }
 
-fn handle_normal_move(board: &Board, src: Pos, dest: Pos) -> Result<Board, String> {
+fn handle_normal_move(board: &Board, src: Square, dest: Square) -> Result<Board, String> {
     let src_piece = match board.get_piece_at(src) {
         Some(piece) => piece,
         None => return Err("No piece at move origin".to_string()),
@@ -247,7 +254,7 @@ fn handle_normal_move(board: &Board, src: Pos, dest: Pos) -> Result<Board, Strin
 }
 
 // this function does not check if the pawn belongs to the active player, handle_normal_move does that
-pub fn is_promotion_move(board: &Board, src: Pos, dest: Pos) -> bool {
+pub fn is_promotion_move(board: &Board, src: Square, dest: Square) -> bool {
     match board.get_piece_at(src) {
         Some(Piece(PieceType::Pawn, Color::White)) => dest.1 == Rank::_8,
         Some(Piece(PieceType::Pawn, Color::Black)) => dest.1 == Rank::_1,
@@ -283,7 +290,7 @@ fn handle_promotion_move(board: &Board, move_: &Move) -> Result<Board, String> {
     Ok(new_board)
 }
 
-fn check_and_handle_normal_move(board: &Board, src: Pos, dest: Pos) -> Result<Board, String> {
+fn check_and_handle_normal_move(board: &Board, src: Square, dest: Square) -> Result<Board, String> {
     if is_promotion_move(board, src, dest) {
         Err("Move is a promotion but no piece was specified".to_string())
     } else {
@@ -305,10 +312,10 @@ fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
         Color::Black => Rank::_8,
     };
     let (king_pos, f_square, g_square, rook_pos) = (
-        Pos(File::E, home_rank),
-        Pos(File::F, home_rank),
-        Pos(File::G, home_rank),
-        Pos(File::H, home_rank),
+        Square(File::E, home_rank),
+        Square(File::F, home_rank),
+        Square(File::G, home_rank),
+        Square(File::H, home_rank),
     );
     let mut new_board = board.clone();
     new_board.clear_square(king_pos);
@@ -352,11 +359,11 @@ fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
         Color::Black => Rank::_8,
     };
     let (king_pos, d_square, c_square, b_square, rook_pos) = (
-        Pos(File::E, home_rank),
-        Pos(File::D, home_rank),
-        Pos(File::C, home_rank),
-        Pos(File::B, home_rank),
-        Pos(File::A, home_rank),
+        Square(File::E, home_rank),
+        Square(File::D, home_rank),
+        Square(File::C, home_rank),
+        Square(File::B, home_rank),
+        Square(File::A, home_rank),
     );
     let mut new_board = board.clone();
     new_board.clear_square(king_pos);
@@ -406,119 +413,5 @@ pub fn is_move_legal(board: &Board, move_: &Move) -> bool {
     match apply_move(board, move_) {
         Ok(_) => true,
         Err(_) => false,
-    }
-}
-
-// TODO clean up
-// step 1: get list of possible moves (depends on piece)
-// step 2: filter illegal moves
-pub fn get_legal_moves(board: &Board) -> Vec<Move> {
-    let mut legal_moves = Vec::new();
-    let (opp_home_rank, pawn_dir) = match board.active_player {
-        Color::White => (Rank::_8, 1),
-        Color::Black => (Rank::_1, -1),
-    };
-    for file in 0..8 {
-        for rank in 0..8 {
-            let src = Pos(File::from_i8(file).unwrap(), Rank::from_i8(rank).unwrap());
-            let piece = match board.get_piece_at(src) {
-                Some(piece) => piece,
-                None => continue,
-            };
-            if piece.1 != board.active_player {
-                continue;
-            }
-            if piece.0 == PieceType::Pawn {
-                for dest in [
-                    (0, pawn_dir),
-                    (0, 2 * pawn_dir),
-                    (1, pawn_dir),
-                    (-1, pawn_dir),
-                ]
-                .iter()
-                .filter_map(|step| pos_plus(src, *step))
-                {
-                    let move_;
-                    if dest.1 == opp_home_rank {
-                        move_ = Move::Promotion {
-                            src,
-                            dest,
-                            promotion: PromotionPieceType::Queen,
-                        };
-                        if is_move_legal(board, &move_) {
-                            legal_moves.push(move_);
-                            legal_moves.push(Move::Promotion {
-                                src,
-                                dest,
-                                promotion: PromotionPieceType::Rook,
-                            });
-                            legal_moves.push(Move::Promotion {
-                                src,
-                                dest,
-                                promotion: PromotionPieceType::Bishop,
-                            });
-                            legal_moves.push(Move::Promotion {
-                                src,
-                                dest,
-                                promotion: PromotionPieceType::Knight,
-                            });
-                        }
-                    } else {
-                        move_ = Move::Normal { src, dest };
-                        if is_move_legal(board, &move_) {
-                            legal_moves.push(move_);
-                        }
-                    }
-                }
-            } else if piece.0 == PieceType::Knight {
-                for dest in KnightHopIter::new(src) {
-                    let move_ = Move::Normal { src, dest };
-                    if is_move_legal(board, &move_) {
-                        legal_moves.push(move_);
-                    }
-                }
-            } else if piece.0 == PieceType::King {
-                for dest in DirIter::all().filter_map(|dir| pos_plus(src, dir)) {
-                    let move_ = Move::Normal { src, dest };
-                    if is_move_legal(board, &move_) {
-                        legal_moves.push(move_);
-                    }
-                }
-            } else {
-                for dir in match piece.0 {
-                    PieceType::Rook => DirIter::rook(),
-                    PieceType::Bishop => DirIter::bishop(),
-                    PieceType::Queen => DirIter::all(),
-                    _ => unreachable!(),
-                } {
-                    for dest in RayIter::new(src, dir) {
-                        let move_ = Move::Normal { src, dest };
-                        if is_move_legal(board, &move_) {
-                            legal_moves.push(move_);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if is_move_legal(board, &Move::CastleKingside {}) {
-        legal_moves.push(Move::CastleKingside {});
-    }
-    if is_move_legal(board, &Move::CastleQueenside {}) {
-        legal_moves.push(Move::CastleQueenside {});
-    }
-    legal_moves
-}
-
-pub fn get_gamestate(board: &Board) -> GameState {
-    let legal_moves = get_legal_moves(board);
-    if legal_moves.is_empty() {
-        if is_king_in_check(board) {
-            GameState::Mated(board.active_player)
-        } else {
-            GameState::Stalemate
-        }
-    } else {
-        GameState::InProgress
     }
 }

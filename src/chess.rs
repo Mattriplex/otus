@@ -3,161 +3,29 @@ use std::fmt::{self, Display};
 use crate::chess::models::Piece;
 
 use self::{
-    models::{Color, File, GameState, Move, PieceType, Pos, PromotionPieceType, Rank},
+    models::{Color, File, GameState, Move, PieceType, PromotionPieceType, Rank, Square},
+    move_checking::{
+        is_king_in_check, is_move_legal,
+        square_utils::{pos_plus, DirIter, KnightHopIter, RayIter},
+    },
     player::ChessPlayer,
 };
 
 pub mod move_checking;
 
+pub mod model_utils;
 pub mod models;
 pub mod player;
 
 #[cfg(test)]
 mod tests;
 
-impl fmt::Display for PieceType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            PieceType::Pawn => write!(f, "Pawn"),
-            PieceType::Knight => write!(f, "Knight"),
-            PieceType::Bishop => write!(f, "Bishop"),
-            PieceType::Rook => write!(f, "Rook"),
-            PieceType::Queen => write!(f, "Queen"),
-            PieceType::King => write!(f, "King"),
-        }
-    }
-}
-
-pub trait Opponent {
-    fn opponent(&self) -> Self;
-}
-
-impl Opponent for Color {
-    fn opponent(&self) -> Color {
-        match self {
-            Color::White => Color::Black,
-            Color::Black => Color::White,
-        }
-    }
-}
-
-impl Display for Color {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s = match self {
-            Color::White => "White",
-            Color::Black => "Black",
-        };
-        write!(f, "{}", s)
-    }
-}
-
-impl Rank {
-    fn from_i8(i: i8) -> Option<Rank> {
-        match i {
-            0 => Some(Rank::_1),
-            1 => Some(Rank::_2),
-            2 => Some(Rank::_3),
-            3 => Some(Rank::_4),
-            4 => Some(Rank::_5),
-            5 => Some(Rank::_6),
-            6 => Some(Rank::_7),
-            7 => Some(Rank::_8),
-            _ => None,
-        }
-    }
-}
-
-impl Display for Rank {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", *self as u8 + 1)
-    }
-}
-
-impl File {
-    fn from_i8(i: i8) -> Option<File> {
-        match i {
-            0 => Some(File::A),
-            1 => Some(File::B),
-            2 => Some(File::C),
-            3 => Some(File::D),
-            4 => Some(File::E),
-            5 => Some(File::F),
-            6 => Some(File::G),
-            7 => Some(File::H),
-            _ => None,
-        }
-    }
-}
-
-impl Display for File {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", (*self as u8 + 'a' as u8) as char)
-    }
-}
-
-impl fmt::Display for Piece {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let symbol = match self {
-            Piece(PieceType::Pawn, Color::White) => '♙',
-            Piece(PieceType::Knight, Color::White) => '♘',
-            Piece(PieceType::Bishop, Color::White) => '♗',
-            Piece(PieceType::Rook, Color::White) => '♖',
-            Piece(PieceType::Queen, Color::White) => '♕',
-            Piece(PieceType::King, Color::White) => '♔',
-            Piece(PieceType::Pawn, Color::Black) => '♟',
-            Piece(PieceType::Knight, Color::Black) => '♞',
-            Piece(PieceType::Bishop, Color::Black) => '♝',
-            Piece(PieceType::Rook, Color::Black) => '♜',
-            Piece(PieceType::Queen, Color::Black) => '♛',
-            Piece(PieceType::King, Color::Black) => '♚',
-        };
-        write!(f, "{}", symbol)
-    }
-}
-
-impl Pos {
-    fn from_string(s: &str) -> Result<Pos, String> {
-        if s.len() != 2 {
-            return Err("Expected 2 characters".to_string());
-        }
-        let file = match s.chars().nth(0).unwrap().to_ascii_lowercase() {
-            'a' => Ok(File::A),
-            'b' => Ok(File::B),
-            'c' => Ok(File::C),
-            'd' => Ok(File::D),
-            'e' => Ok(File::E),
-            'f' => Ok(File::F),
-            'g' => Ok(File::G),
-            'h' => Ok(File::H),
-            _ => Err("Invalid file".to_string()),
-        }?;
-        let rank = match s.chars().nth(1).unwrap() {
-            '1' => Ok(Rank::_1),
-            '2' => Ok(Rank::_2),
-            '3' => Ok(Rank::_3),
-            '4' => Ok(Rank::_4),
-            '5' => Ok(Rank::_5),
-            '6' => Ok(Rank::_6),
-            '7' => Ok(Rank::_7),
-            '8' => Ok(Rank::_8),
-            _ => Err("Invalid rank".to_string()),
-        }?;
-        Ok(Pos(file, rank))
-    }
-}
-
-impl fmt::Display for Pos {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}{}", self.0, self.1)
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Board {
     squares: [[Option<Piece>; 8]; 8],
     active_player: Color,
     castling_rights: u8, // KQkq
-    en_passant_target: Option<Pos>,
+    en_passant_target: Option<Square>,
 }
 
 impl Board {
@@ -178,7 +46,7 @@ impl Board {
         self.squares[rank as usize][file as usize]
     }
 
-    fn get_piece_at(&self, pos: Pos) -> Option<Piece> {
+    fn get_piece_at(&self, pos: Square) -> Option<Piece> {
         self.get_piece(pos.0, pos.1)
     }
 
@@ -186,11 +54,11 @@ impl Board {
         self.squares[rank as usize][file as usize] = Some(piece);
     }
 
-    fn set_piece_at(&mut self, pos: Pos, piece: Piece) {
+    fn set_piece_at(&mut self, pos: Square, piece: Piece) {
         self.squares[pos.1 as usize][pos.0 as usize] = Some(piece);
     }
 
-    fn clear_square(&mut self, pos: Pos) {
+    fn clear_square(&mut self, pos: Square) {
         self.squares[pos.1 as usize][pos.0 as usize] = None;
     }
 
@@ -276,7 +144,7 @@ impl Board {
         let castling_rights = Self::decode_fen_castling_rights(parts[2])?;
         let en_passant_target = match parts[3] {
             "-" => None,
-            s => Some(Pos::from_string(s)?),
+            s => Some(Square::from_string(s)?),
         };
         Ok(Board {
             squares,
@@ -397,47 +265,6 @@ impl Board {
     }
 }
 
-impl fmt::Display for Board {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for rank in (0..8).rev() {
-            self.fmt_rank(f, rank)?;
-            write!(f, "\n")?;
-        }
-        Ok(())
-    }
-}
-
-impl fmt::Display for Move {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Move::Normal {
-                src: from,
-                dest: to,
-            } => write!(f, "{}-{}", from, to),
-            Move::CastleKingside => write!(f, "0-0"),
-            Move::CastleQueenside => write!(f, "0-0-0"),
-            Move::Promotion {
-                src: from,
-                dest: to,
-                promotion,
-            } => {
-                write!(
-                    f,
-                    "{}-{}={}",
-                    from,
-                    to,
-                    match promotion {
-                        PromotionPieceType::Knight => "N",
-                        PromotionPieceType::Bishop => "B",
-                        PromotionPieceType::Rook => "R",
-                        PromotionPieceType::Queen => "Q",
-                    }
-                )
-            }
-        }
-    }
-}
-
 pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) -> GameState {
     let mut board = Board::default();
     loop {
@@ -448,7 +275,7 @@ pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) 
         match move_checking::apply_move(&board, &m) {
             Ok(new_board) => {
                 board = new_board;
-                match move_checking::get_gamestate(&board) {
+                match get_gamestate(&board) {
                     GameState::InProgress => (),
                     gs => return gs,
                 }
@@ -456,5 +283,119 @@ pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) 
             // Illegal move, game is forfeit
             Err(_) => return GameState::Mated(board.active_player),
         }
+    }
+}
+
+// TODO clean up
+// step 1: get list of possible moves (depends on piece)
+// step 2: filter illegal moves
+pub fn get_legal_moves(board: &Board) -> Vec<Move> {
+    let mut legal_moves = Vec::new();
+    let (opp_home_rank, pawn_dir) = match board.active_player {
+        Color::White => (Rank::_8, 1),
+        Color::Black => (Rank::_1, -1),
+    };
+    for file in 0..8 {
+        for rank in 0..8 {
+            let src = Square(File::from_i8(file).unwrap(), Rank::from_i8(rank).unwrap());
+            let piece = match board.get_piece_at(src) {
+                Some(piece) => piece,
+                None => continue,
+            };
+            if piece.1 != board.active_player {
+                continue;
+            }
+            if piece.0 == PieceType::Pawn {
+                for dest in [
+                    (0, pawn_dir),
+                    (0, 2 * pawn_dir),
+                    (1, pawn_dir),
+                    (-1, pawn_dir),
+                ]
+                .iter()
+                .filter_map(|step| pos_plus(src, *step))
+                {
+                    let move_;
+                    if dest.1 == opp_home_rank {
+                        move_ = Move::Promotion {
+                            src,
+                            dest,
+                            promotion: PromotionPieceType::Queen,
+                        };
+                        if is_move_legal(board, &move_) {
+                            legal_moves.push(move_);
+                            legal_moves.push(Move::Promotion {
+                                src,
+                                dest,
+                                promotion: PromotionPieceType::Rook,
+                            });
+                            legal_moves.push(Move::Promotion {
+                                src,
+                                dest,
+                                promotion: PromotionPieceType::Bishop,
+                            });
+                            legal_moves.push(Move::Promotion {
+                                src,
+                                dest,
+                                promotion: PromotionPieceType::Knight,
+                            });
+                        }
+                    } else {
+                        move_ = Move::Normal { src, dest };
+                        if is_move_legal(board, &move_) {
+                            legal_moves.push(move_);
+                        }
+                    }
+                }
+            } else if piece.0 == PieceType::Knight {
+                for dest in KnightHopIter::new(src) {
+                    let move_ = Move::Normal { src, dest };
+                    if is_move_legal(board, &move_) {
+                        legal_moves.push(move_);
+                    }
+                }
+            } else if piece.0 == PieceType::King {
+                for dest in DirIter::all().filter_map(|dir| pos_plus(src, dir)) {
+                    let move_ = Move::Normal { src, dest };
+                    if is_move_legal(board, &move_) {
+                        legal_moves.push(move_);
+                    }
+                }
+            } else {
+                for dir in match piece.0 {
+                    PieceType::Rook => DirIter::rook(),
+                    PieceType::Bishop => DirIter::bishop(),
+                    PieceType::Queen => DirIter::all(),
+                    _ => unreachable!(),
+                } {
+                    for dest in RayIter::new(src, dir) {
+                        let move_ = Move::Normal { src, dest };
+                        if is_move_legal(board, &move_) {
+                            legal_moves.push(move_);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if is_move_legal(board, &Move::CastleKingside {}) {
+        legal_moves.push(Move::CastleKingside {});
+    }
+    if is_move_legal(board, &Move::CastleQueenside {}) {
+        legal_moves.push(Move::CastleQueenside {});
+    }
+    legal_moves
+}
+
+pub fn get_gamestate(board: &Board) -> GameState {
+    let legal_moves = get_legal_moves(board);
+    if legal_moves.is_empty() {
+        if is_king_in_check(board) {
+            GameState::Mated(board.active_player)
+        } else {
+            GameState::Stalemate
+        }
+    } else {
+        GameState::InProgress
     }
 }

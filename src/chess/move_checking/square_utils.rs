@@ -1,14 +1,14 @@
-use crate::chess::models::{Color, File, PieceType, Pos, Rank};
+use crate::chess::models::{Color, File, PieceType, Rank, Square};
 
 pub struct SlideIter {
-    current: Pos,
-    dest: Pos,
+    current: Square,
+    dest: Square,
     step: (i8, i8),
 }
 
 impl SlideIter {
     // iterator includes all positions between src and dest, excluding src and dest
-    pub fn new(src: Pos, dest: Pos) -> SlideIter {
+    pub fn new(src: Square, dest: Square) -> SlideIter {
         let step = (
             ((dest.0 as i8) - (src.0 as i8)).signum(),
             ((dest.1 as i8) - (src.1 as i8)).signum(),
@@ -26,7 +26,7 @@ impl SlideIter {
 }
 
 impl Iterator for SlideIter {
-    type Item = Pos;
+    type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current != self.dest {
@@ -40,7 +40,7 @@ impl Iterator for SlideIter {
     }
 }
 
-pub fn pos_plus(pos: Pos, step: (i8, i8)) -> Option<Pos> {
+pub fn pos_plus(pos: Square, step: (i8, i8)) -> Option<Square> {
     let new_file = match File::from_i8(pos.0 as i8 + step.0) {
         Some(file) => file,
         None => return None,
@@ -49,10 +49,10 @@ pub fn pos_plus(pos: Pos, step: (i8, i8)) -> Option<Pos> {
         Some(rank) => rank,
         None => return None,
     };
-    Some(Pos(new_file, new_rank))
+    Some(Square(new_file, new_rank))
 }
 
-fn pos_minus(dest: Pos, src: Pos) -> (i8, i8) {
+fn pos_minus(dest: Square, src: Square) -> (i8, i8) {
     (
         (dest.0 as i8) - (src.0 as i8),
         (dest.1 as i8) - (src.1 as i8),
@@ -87,11 +87,11 @@ const KNIGHT_HOPS: [(i8, i8); 8] = [
 
 pub struct KnightHopIter {
     current: usize,
-    positions: [Option<Pos>; 8],
+    positions: [Option<Square>; 8],
 }
 
 impl KnightHopIter {
-    pub fn new(origin: Pos) -> KnightHopIter {
+    pub fn new(origin: Square) -> KnightHopIter {
         let mut p_idx = 0;
         let mut positions = [None; 8];
         for hop in KNIGHT_HOPS.iter() {
@@ -108,7 +108,7 @@ impl KnightHopIter {
 }
 
 impl Iterator for KnightHopIter {
-    type Item = Pos;
+    type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current < 8 {
@@ -160,17 +160,17 @@ impl Iterator for DirIter {
 
 pub struct RayIter {
     dir: (i8, i8),
-    current: Pos,
+    current: Square,
 }
 
 impl RayIter {
-    pub fn new(base: Pos, dir: (i8, i8)) -> RayIter {
+    pub fn new(base: Square, dir: (i8, i8)) -> RayIter {
         RayIter { dir, current: base }
     }
 }
 
 impl Iterator for RayIter {
-    type Item = Pos;
+    type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
         match pos_plus(self.current, self.dir) {
@@ -183,27 +183,27 @@ impl Iterator for RayIter {
     }
 }
 
-fn is_rook_move(src: Pos, dest: Pos) -> bool {
+fn is_rook_move(src: Square, dest: Square) -> bool {
     let (x, y) = pos_minus(dest, src);
     x == 0 || y == 0
 }
 
-fn is_bishop_move(src: Pos, dest: Pos) -> bool {
+fn is_bishop_move(src: Square, dest: Square) -> bool {
     let (x, y) = pos_minus(dest, src);
     x.abs() == y.abs()
 }
 
-fn is_knight_move(src: Pos, dest: Pos) -> bool {
+fn is_knight_move(src: Square, dest: Square) -> bool {
     let (x, y) = pos_minus(dest, src);
     (x.abs() == 2 && y.abs() == 1) || (x.abs() == 1 && y.abs() == 2)
 }
 
-fn is_king_move(src: Pos, dest: Pos) -> bool {
+fn is_king_move(src: Square, dest: Square) -> bool {
     let (x, y) = pos_minus(dest, src);
     x.abs() <= 1 && y.abs() <= 1
 }
 
-fn is_pawn_move(src: Pos, dest: Pos, player: Color) -> bool {
+fn is_pawn_move(src: Square, dest: Square, player: Color) -> bool {
     let (x, y) = pos_minus(dest, src);
     match player {
         Color::White => (x.abs() <= 1 && y == 1) || (x == 0 && y == 2 && src.1 == Rank::_2),
@@ -211,7 +211,7 @@ fn is_pawn_move(src: Pos, dest: Pos, player: Color) -> bool {
     }
 }
 
-pub fn is_move_pseudo_legal(src: Pos, dest: Pos, piece: PieceType, player: Color) -> bool {
+pub fn is_move_pseudo_legal(src: Square, dest: Square, piece: PieceType, player: Color) -> bool {
     match piece {
         PieceType::Queen => is_rook_move(src, dest) || is_bishop_move(src, dest),
         PieceType::Rook => is_rook_move(src, dest),

@@ -4,7 +4,7 @@ use crate::chess::PromotionPieceType;
 
 use super::{
     move_checking::{is_move_legal, is_promotion_move},
-    Board, ChessPlayer, Move, Pos,
+    Board, ChessPlayer, Move, Square,
 };
 
 impl HumanPlayer {
@@ -19,8 +19,8 @@ impl HumanPlayer {
                 if parts.len() != 2 {
                     return Err("Error parsing move".to_string());
                 }
-                let from = Pos::from_string(parts[0]).unwrap();
-                let to = Pos::from_string(parts[1]).unwrap();
+                let from = Square::from_string(parts[0]).unwrap();
+                let to = Square::from_string(parts[1]).unwrap();
                 let move_;
                 if is_promotion_move(board, from, to) {
                     println!("Enter promotion piece: ");

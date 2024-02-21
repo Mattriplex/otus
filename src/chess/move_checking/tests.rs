@@ -1,13 +1,13 @@
 use rstest::rstest;
 
+use crate::chess::model_utils::Opponent;
 use crate::chess::move_checking::apply_move;
 use crate::chess::move_checking::is_move_legal;
 use crate::chess::Color::*;
 use crate::chess::File::*;
-use crate::chess::Opponent;
 use crate::chess::PieceType::*;
 use crate::chess::Rank::*;
-use crate::chess::{Board, Color, File, Move, Piece, PieceType, Pos, Rank};
+use crate::chess::{Board, Color, File, Move, Piece, PieceType, Rank, Square};
 
 #[rstest]
 #[case(White)]
@@ -17,8 +17,8 @@ fn test_cannot_move_opponents_piece(#[case] player: Color) {
     board.active_player = player;
     board.set_piece(E, _2, Piece(PieceType::Queen, player.opponent()));
     let move_ = Move::Normal {
-        src: Pos(E, _2),
-        dest: Pos(E, _4),
+        src: Square(E, _2),
+        dest: Square(E, _4),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -32,8 +32,8 @@ fn test_cannot_move_to_same_square(#[case] player: Color) {
     board.active_player = player;
     board.set_piece(E, _2, Piece(PieceType::Queen, player));
     let move_ = Move::Normal {
-        src: Pos(E, _2),
-        dest: Pos(E, _2),
+        src: Square(E, _2),
+        dest: Square(E, _2),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -46,8 +46,8 @@ fn test_cannot_move_from_empty_square(#[case] player: Color) {
     let mut board = Board::empty();
     board.active_player = player;
     let move_ = Move::Normal {
-        src: Pos(E, _2),
-        dest: Pos(E, _3),
+        src: Square(E, _2),
+        dest: Square(E, _3),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -62,8 +62,8 @@ fn test_cannot_capture_own_piece(#[case] player: Color) {
     board.set_piece(E, _2, Piece(PieceType::Queen, player));
     board.set_piece(E, _3, Piece(PieceType::Queen, player));
     let move_ = Move::Normal {
-        src: Pos(E, _2),
-        dest: Pos(E, _3),
+        src: Square(E, _2),
+        dest: Square(E, _3),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -100,8 +100,8 @@ fn test_valid_movement_patterns(
     board.active_player = White;
     board.set_piece(E, _2, Piece(piece, White));
     let move_ = Move::Normal {
-        src: Pos(E, _2),
-        dest: Pos(dst_file, dst_rank),
+        src: Square(E, _2),
+        dest: Square(dst_file, dst_rank),
     };
 
     assert!(is_move_legal(&board, &move_));
@@ -128,8 +128,8 @@ fn test_invalid_movement_patterns(
     board.active_player = White;
     board.set_piece(E, _2, Piece(piece, White));
     let move_ = Move::Normal {
-        src: Pos(E, _2),
-        dest: Pos(dst_file, dst_rank),
+        src: Square(E, _2),
+        dest: Square(dst_file, dst_rank),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -145,8 +145,8 @@ fn test_black_pawn_moves(#[case] dst_file: File, #[case] dst_rank: Rank, #[case]
     board.active_player = Black;
     board.set_piece(F, _7, Piece(Pawn, Black));
     let move_ = Move::Normal {
-        src: Pos(F, _7),
-        dest: Pos(dst_file, dst_rank),
+        src: Square(F, _7),
+        dest: Square(dst_file, dst_rank),
     };
 
     assert_eq!(is_move_legal(&board, &move_), expected);
@@ -159,12 +159,12 @@ fn test_blocked_pawn() {
     board.set_piece(F, _7, Piece(Pawn, Black));
     board.set_piece(F, _6, Piece(Pawn, White));
     let move1 = Move::Normal {
-        src: Pos(F, _7),
-        dest: Pos(F, _6),
+        src: Square(F, _7),
+        dest: Square(F, _6),
     };
     let move2 = Move::Normal {
-        src: Pos(F, _7),
-        dest: Pos(F, _5),
+        src: Square(F, _7),
+        dest: Square(F, _5),
     };
 
     assert!(!is_move_legal(&board, &move1));
@@ -196,8 +196,8 @@ fn test_capture(
         Piece(PieceType::Pawn, player.opponent()),
     );
     let move_ = Move::Normal {
-        src: Pos(E, _4),
-        dest: Pos(dst_file, dst_rank),
+        src: Square(E, _4),
+        dest: Square(dst_file, dst_rank),
     };
 
     let result = apply_move(&board, &move_).unwrap();
@@ -215,25 +215,25 @@ fn test_en_passant_target() {
     board.active_player = White;
     board.set_piece(A, _2, Piece(PieceType::Pawn, White));
     let move_ = Move::Normal {
-        src: Pos(A, _2),
-        dest: Pos(A, _4),
+        src: Square(A, _2),
+        dest: Square(A, _4),
     };
 
     let result = apply_move(&board, &move_).unwrap();
 
-    assert_eq!(result.en_passant_target, Some(Pos(A, _3)));
+    assert_eq!(result.en_passant_target, Some(Square(A, _3)));
 }
 
 #[test]
 fn test_en_passant_capture() {
     let mut board = Board::empty();
     board.active_player = White;
-    board.en_passant_target = Some(Pos(D, _6));
+    board.en_passant_target = Some(Square(D, _6));
     board.set_piece(D, _5, Piece(PieceType::Pawn, Black));
     board.set_piece(E, _5, Piece(PieceType::Pawn, White));
     let move_ = Move::Normal {
-        src: Pos(E, _5),
-        dest: Pos(D, _6),
+        src: Square(E, _5),
+        dest: Square(D, _6),
     };
 
     let result = apply_move(&board, &move_).unwrap();
@@ -252,8 +252,8 @@ fn test_invalid_en_passant() {
     board.set_piece(D, _5, Piece(PieceType::Pawn, Black));
     board.set_piece(E, _5, Piece(PieceType::Pawn, White));
     let move_ = Move::Normal {
-        src: Pos(E, _5),
-        dest: Pos(D, _6),
+        src: Square(E, _5),
+        dest: Square(D, _6),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -265,8 +265,8 @@ fn test_no_normal_pawn_move_to_board_end() {
     board.active_player = Black;
     board.set_piece(F, _2, Piece(PieceType::Pawn, Black));
     let move_ = Move::Normal {
-        src: Pos(F, _2),
-        dest: Pos(F, _1),
+        src: Square(F, _2),
+        dest: Square(F, _1),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -278,8 +278,8 @@ fn test_promotion_move() {
     board.active_player = Black;
     board.set_piece(F, _2, Piece(PieceType::Pawn, Black));
     let move_ = Move::Promotion {
-        src: Pos(F, _2),
-        dest: Pos(F, _1),
+        src: Square(F, _2),
+        dest: Square(F, _1),
         promotion: crate::chess::PromotionPieceType::Queen,
     };
 
@@ -299,8 +299,8 @@ fn test_promotion_capture() {
     board.set_piece(B, _7, Piece(PieceType::Pawn, White));
     board.set_piece(A, _8, Piece(PieceType::Rook, Black));
     let move_ = Move::Promotion {
-        src: Pos(B, _7),
-        dest: Pos(A, _8),
+        src: Square(B, _7),
+        dest: Square(A, _8),
         promotion: crate::chess::PromotionPieceType::Knight,
     };
 
@@ -330,8 +330,8 @@ fn test_sliding_piece_blocked_by_friendly_piece(
     board.set_piece(src_file, src_rank, Piece(piece, White));
     board.set_piece(E, _5, Piece(PieceType::Pawn, White));
     let move_ = Move::Normal {
-        src: Pos(src_file, src_rank),
-        dest: Pos(dst_file, dst_rank),
+        src: Square(src_file, src_rank),
+        dest: Square(dst_file, dst_rank),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -354,8 +354,8 @@ fn test_long_slide_blocked_by_opponent_piece(
     board.set_piece(src_file, src_rank, Piece(piece, Black));
     board.set_piece(E, _5, Piece(PieceType::Pawn, White));
     let move_ = Move::Normal {
-        src: Pos(src_file, src_rank),
-        dest: Pos(dst_file, dst_rank),
+        src: Square(src_file, src_rank),
+        dest: Square(dst_file, dst_rank),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -367,8 +367,8 @@ fn test_must_not_move_king_into_check() {
     board.set_piece(E, _1, Piece(PieceType::King, White));
     board.set_piece(F, _8, Piece(PieceType::Rook, Black));
     let move_ = Move::Normal {
-        src: Pos(E, _1),
-        dest: Pos(F, _2),
+        src: Square(E, _1),
+        dest: Square(F, _2),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -381,8 +381,8 @@ fn test_must_not_leave_king_in_check() {
     board.set_piece(E, _8, Piece(PieceType::Rook, Black));
     board.set_piece(G, _2, Piece(PieceType::Bishop, White));
     let move_ = Move::Normal {
-        src: Pos(G, _2),
-        dest: Pos(F, _3),
+        src: Square(G, _2),
+        dest: Square(F, _3),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -395,8 +395,8 @@ fn test_must_not_put_king_in_check() {
     board.set_piece(E, _8, Piece(PieceType::Rook, Black));
     board.set_piece(E, _4, Piece(PieceType::Bishop, White));
     let move_ = Move::Normal {
-        src: Pos(E, _4),
-        dest: Pos(F, _3),
+        src: Square(E, _4),
+        dest: Square(F, _3),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -410,10 +410,10 @@ fn test_en_passant_must_not_put_king_in_check() {
     board.set_piece(D, _5, Piece(PieceType::Pawn, Black));
     board.set_piece(C, _5, Piece(PieceType::Pawn, White));
     board.set_piece(B, _5, Piece(PieceType::Rook, Black));
-    board.en_passant_target = Some(Pos(D, _6));
+    board.en_passant_target = Some(Square(D, _6));
     let move_ = Move::Normal {
-        src: Pos(C, _5),
-        dest: Pos(D, _6),
+        src: Square(C, _5),
+        dest: Square(D, _6),
     };
 
     assert!(!is_move_legal(&board, &move_));
@@ -511,8 +511,8 @@ fn test_missing_castling_rights() {
 fn test_king_move_voids_white_castling_rights() {
     let board = Board::from_fen("8/8/8/8/8/8/8/R3K2R w KQkq - 0 1").unwrap();
     let move_ = Move::Normal {
-        src: Pos(E, _1),
-        dest: Pos(E, _2),
+        src: Square(E, _1),
+        dest: Square(E, _2),
     };
 
     let result = apply_move(&board, &move_).unwrap();
@@ -526,8 +526,8 @@ fn test_king_move_voids_white_castling_rights() {
 fn test_king_move_voids_black_castling_rights() {
     let board = Board::from_fen("r3k2r/8/8/8/8/8/8/8 b KQkq - 0 1").unwrap();
     let move_ = Move::Normal {
-        src: Pos(E, _8),
-        dest: Pos(E, _7),
+        src: Square(E, _8),
+        dest: Square(E, _7),
     };
 
     let result = apply_move(&board, &move_).unwrap();
@@ -541,8 +541,8 @@ fn test_king_move_voids_black_castling_rights() {
 fn test_rook_move_voids_castling_rights() {
     let board = Board::from_fen("8/8/8/8/8/8/8/R3K2R w KQ - 0 1").unwrap();
     let move_ = Move::Normal {
-        src: Pos(H, _1),
-        dest: Pos(H, _2),
+        src: Square(H, _1),
+        dest: Square(H, _2),
     };
 
     let result = apply_move(&board, &move_).unwrap();
@@ -555,8 +555,8 @@ fn test_rook_move_voids_castling_rights() {
 fn test_rook_capture_voids_castling_rights() {
     let board = Board::from_fen("7b/8/8/8/8/8/8/R3K2R b KQ - 0 1").unwrap();
     let move_ = Move::Normal {
-        src: Pos(H, _8),
-        dest: Pos(A, _1),
+        src: Square(H, _8),
+        dest: Square(A, _1),
     };
 
     let result = apply_move(&board, &move_).unwrap();
