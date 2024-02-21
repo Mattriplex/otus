@@ -4,7 +4,7 @@ use crate::chess::move_checking::is_move_legal;
 
 use self::move_checking::is_promotion_move;
 
-mod move_checking;
+pub mod move_checking;
 #[cfg(test)]
 mod tests;
 
@@ -96,6 +96,12 @@ impl Rank {
     }
 }
 
+impl Display for Rank {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", *self as u8 + 1)
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u8)]
 enum File {
@@ -122,6 +128,12 @@ impl File {
             7 => Some(File::H),
             _ => None,
         }
+    }
+}
+
+impl Display for File {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", (*self as u8 + 'a' as u8) as char)
     }
 }
 
@@ -179,6 +191,12 @@ impl Position {
             _ => Err("Invalid rank".to_string()),
         }?;
         Ok(Position(file, rank))
+    }
+}
+
+impl fmt::Display for Position {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}{}", self.0, self.1)
     }
 }
 
@@ -381,6 +399,34 @@ pub enum Move {
         to: Position,
         promotion: PromotionPieceType,
     },
+}
+
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Move::Normal { from, to } => write!(f, "{}-{}", from, to),
+            Move::CastleKingside => write!(f, "0-0"),
+            Move::CastleQueenside => write!(f, "0-0-0"),
+            Move::Promotion {
+                from,
+                to,
+                promotion,
+            } => {
+                write!(
+                    f,
+                    "{}-{}={}",
+                    from,
+                    to,
+                    match promotion {
+                        PromotionPieceType::Knight => "N",
+                        PromotionPieceType::Bishop => "B",
+                        PromotionPieceType::Rook => "R",
+                        PromotionPieceType::Queen => "Q",
+                    }
+                )
+            }
+        }
+    }
 }
 
 pub enum GameState {

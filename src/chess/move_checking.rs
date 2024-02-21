@@ -424,7 +424,6 @@ fn update_en_passant_square(new_board: &mut Board, src: Position, dest: Position
     }
 }
 
-//TODO: Double pawn move sets en passant target
 fn handle_normal_move(board: &Board, src: Position, dest: Position) -> Result<Board, String> {
     let src_piece = match board.get_piece_at(src) {
         Some(piece) => piece,
@@ -545,6 +544,8 @@ fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
     }
     new_board.clear_square(rook_pos);
     new_board.set_piece_at(f_square, Piece(PieceType::Rook, board.active_player));
+    new_board.revoke_kingside_castling(board.active_player);
+    new_board.revoke_queenside_castling(board.active_player);
     new_board.active_player = board.active_player.opponent();
     Ok(new_board)
 }
@@ -593,6 +594,8 @@ fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
     }
     new_board.clear_square(rook_pos);
     new_board.set_piece_at(d_square, Piece(PieceType::Rook, board.active_player));
+    new_board.revoke_kingside_castling(board.active_player);
+    new_board.revoke_queenside_castling(board.active_player);
     new_board.active_player = board.active_player.opponent();
     Ok(new_board)
 }
@@ -614,7 +617,10 @@ pub fn is_move_legal(board: &Board, move_: &Move) -> bool {
     }
 }
 
-fn get_legal_moves(board: &Board) -> Vec<Move> {
+// TODO clean up
+// step 1: get list of possible moves (depends on piece)
+// step 2: filter illegal moves
+pub fn get_legal_moves(board: &Board) -> Vec<Move> {
     let mut legal_moves = Vec::new();
     let (opp_home_rank, pawn_dir) = match board.active_player {
         Color::White => (Rank::_8, 1),
@@ -647,14 +653,32 @@ fn get_legal_moves(board: &Board) -> Vec<Move> {
                             to: dest,
                             promotion: PromotionPieceType::Queen,
                         };
+                        if is_move_legal(board, &move_) {
+                            legal_moves.push(move_);
+                            legal_moves.push(Move::Promotion {
+                                from: src,
+                                to: dest,
+                                promotion: PromotionPieceType::Rook,
+                            });
+                            legal_moves.push(Move::Promotion {
+                                from: src,
+                                to: dest,
+                                promotion: PromotionPieceType::Bishop,
+                            });
+                            legal_moves.push(Move::Promotion {
+                                from: src,
+                                to: dest,
+                                promotion: PromotionPieceType::Knight,
+                            });
+                        }
                     } else {
                         move_ = Move::Normal {
                             from: src,
                             to: dest,
                         };
-                    }
-                    if is_move_legal(board, &move_) {
-                        legal_moves.push(move_);
+                        if is_move_legal(board, &move_) {
+                            legal_moves.push(move_);
+                        }
                     }
                 }
             } else if piece.0 == PieceType::Knight {

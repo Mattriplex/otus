@@ -568,3 +568,4 @@ fn test_rook_capture_voids_castling_rights() {
 }
 
 // TODO pawn check
+// Castling revoked by castling
