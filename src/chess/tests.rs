@@ -197,8 +197,7 @@ fn perft(board: &Board, depth: u8) -> u64 {
         let new_board = apply_move(&board, &mv).unwrap();
         let new_positions = perft(&new_board, depth - 1);
         count += new_positions;
-        if depth > 2 { println!("{}: {}", mv, new_positions); }
-        
+        //if depth > 2 { println!("{}: {}", mv, new_positions); }
     }
     count
 }
@@ -232,17 +231,6 @@ fn test_perf_3() {
 }
 
 #[test]
-fn test_perf_3_alt() {
-    let board = Board::from_fen("8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - - 0 1").unwrap();
-    let p1 = perft(&board, 2); // 226
-    let board2 = Board::from_fen("8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1").unwrap();
-    //board2 = apply_move(&board2, &Move::Normal{ from: Position(File::G, Rank::_2), to: Position(File::G, Rank::_4)}).unwrap();
-    let p2 = perft(&board2, 2); // 224
-    // this has to be because of en passant
-    assert_eq!(p1, p2);
-}
-
-#[test]
 fn test_perf_4() {
     let board = Board::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1")
         .unwrap();
@@ -271,4 +259,14 @@ fn test_perf_6() {
     assert_eq!(perft(&board, 1), 46);
     assert_eq!(perft(&board, 2), 2079);
     assert_eq!(perft(&board, 3), 89890);
+}
+
+#[test]
+fn test_fen_output() {
+    let board = Board::default();
+    let fen = board.to_fen();
+    assert_eq!(
+        fen,
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    );
 }

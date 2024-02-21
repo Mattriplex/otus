@@ -280,15 +280,21 @@ fn check_move_blocked(
 
 // Precondition: pawn move already carried out
 fn handle_en_passant_move(new_board: &mut Board) {
-    // if en passant was played, remove the captured pawn
+    // if move wasn't en passant capture, return
     let en_passant_target = match new_board.en_passant_target {
         Some(pos) => pos,
-        None => return,
+        None => return, // no en passant target, thus no en passant capture
     };
 
-    if new_board.get_piece_at(en_passant_target) == None {
-        return; // if en passant was played, it would have the active player's pawn on it
+    if let Some(Piece(PieceType::Pawn, color)) = new_board.get_piece_at(en_passant_target) {
+        if color != new_board.active_player {
+            unreachable!("En passant target is not a pawn of the active player")
+        }
+    } else {
+        return; // not a pawn move
     }
+
+    // en passant capture, remove captured pawn
     let captured_pawn_pos = match new_board.active_player {
         Color::White => pos_plus(en_passant_target, (0, -1)),
         Color::Black => pos_plus(en_passant_target, (0, 1)),
@@ -340,7 +346,7 @@ fn is_king_in_check(new_board: &Board) -> bool {
         for pos in RayIter::new(king_pos, dir) {
             if let Some(Piece(piece, color)) = new_board.get_piece_at(pos) {
                 let is_rook_or_queen = piece == PieceType::Rook || piece == PieceType::Queen;
-                if color == new_board.active_player || !is_rook_or_queen{
+                if color == new_board.active_player || !is_rook_or_queen {
                     break;
                 }
                 if is_rook_or_queen {
@@ -422,7 +428,7 @@ fn update_castling_rights(new_board: &mut Board, src: Position, dest: Position) 
 fn update_en_passant_square(new_board: &mut Board, src: Position, dest: Position) {
     let moved_piece = match new_board.get_piece_at(dest) {
         Some(piece) => piece.0,
-        None => return,
+        None => unreachable!(),
     };
     let (home_rank, target_rank, hop_rank) = match new_board.active_player {
         Color::White => (Rank::_2, Rank::_3, Rank::_4),
@@ -558,6 +564,7 @@ fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
     new_board.revoke_kingside_castling(board.active_player);
     new_board.revoke_queenside_castling(board.active_player);
     new_board.active_player = board.active_player.opponent();
+    new_board.en_passant_target = None;
     Ok(new_board)
 }
 
@@ -608,6 +615,7 @@ fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
     new_board.revoke_kingside_castling(board.active_player);
     new_board.revoke_queenside_castling(board.active_player);
     new_board.active_player = board.active_player.opponent();
+    new_board.en_passant_target = None;
     Ok(new_board)
 }
 

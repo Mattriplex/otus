@@ -334,6 +334,74 @@ impl Board {
         })
     }
 
+    pub fn to_fen(&self) -> String {
+        let mut fen = String::new();
+        for rank in (0..8).rev() {
+            let mut empty_squares = 0;
+            for file in 0..8 {
+                match self.squares[rank][file] {
+                    Some(piece) => {
+                        if empty_squares > 0 {
+                            fen.push_str(&empty_squares.to_string());
+                            empty_squares = 0;
+                        }
+                        let p_char = match piece {
+                            Piece(PieceType::Pawn, Color::White) => 'P',
+                            Piece(PieceType::Knight, Color::White) => 'N',
+                            Piece(PieceType::Bishop, Color::White) => 'B',
+                            Piece(PieceType::Rook, Color::White) => 'R',
+                            Piece(PieceType::Queen, Color::White) => 'Q',
+                            Piece(PieceType::King, Color::White) => 'K',
+                            Piece(PieceType::Pawn, Color::Black) => 'p',
+                            Piece(PieceType::Knight, Color::Black) => 'n',
+                            Piece(PieceType::Bishop, Color::Black) => 'b',
+                            Piece(PieceType::Rook, Color::Black) => 'r',
+                            Piece(PieceType::Queen, Color::Black) => 'q',
+                            Piece(PieceType::King, Color::Black) => 'k',
+                        };
+                        fen.push(p_char);
+                    }
+                    None => empty_squares += 1,
+                }
+            }
+            if empty_squares > 0 {
+                fen.push_str(&empty_squares.to_string());
+            }
+            if rank > 0 {
+                fen.push('/');
+            }
+        }
+        fen.push(' ');
+        fen.push_str(&match self.active_player {
+            Color::White => "w",
+            Color::Black => "b",
+        });
+        fen.push(' ');
+        if self.castling_rights == 0 {
+            fen.push('-');
+        } else {
+            if self.castling_rights & 0b1000 != 0 {
+                fen.push('K');
+            }
+            if self.castling_rights & 0b0100 != 0 {
+                fen.push('Q');
+            }
+            if self.castling_rights & 0b0010 != 0 {
+                fen.push('k');
+            }
+            if self.castling_rights & 0b0001 != 0 {
+                fen.push('q');
+            }
+        }
+        fen.push(' ');
+        match self.en_passant_target {
+            Some(p) => fen.push_str(&p.to_string()),
+            None => fen.push('-'),
+        }
+        fen.push_str(" 0 1");
+        fen
+    }
+
     fn can_castle_kingside(&self, color: Color) -> bool {
         self.castling_rights
             & match color {
@@ -507,7 +575,6 @@ impl HumanPlayer {
 }
 
 impl ChessPlayer for HumanPlayer {
-    // TODO promotion move
     fn make_move(&self, board: &Board) -> Move {
         println!("{}", board);
         println!("You are {}. Enter your move: ", board.active_player);
