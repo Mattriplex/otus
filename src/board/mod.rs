@@ -362,6 +362,19 @@ impl Board {
         }
         legal_moves
     }
+
+    pub fn get_gamestate(&self) -> GameState {
+        let legal_moves = self.get_legal_moves();
+        if legal_moves.is_empty() {
+            if is_king_in_check(self) {
+                GameState::Mated(self.active_player)
+            } else {
+                GameState::Stalemate
+            }
+        } else {
+            GameState::InProgress
+        }
+    }
 }
 
 pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) -> GameState {
@@ -374,7 +387,7 @@ pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) 
         match move_checking::apply_move(&board, &m) {
             Ok(new_board) => {
                 board = new_board;
-                match get_gamestate(&board) {
+                match board.get_gamestate() {
                     GameState::InProgress => (),
                     gs => return gs,
                 }
@@ -382,18 +395,5 @@ pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) 
             // Illegal move, game is forfeit
             Err(_) => return GameState::Mated(board.active_player),
         }
-    }
-}
-
-pub fn get_gamestate(board: &Board) -> GameState {
-    let legal_moves = board.get_legal_moves();
-    if legal_moves.is_empty() {
-        if is_king_in_check(board) {
-            GameState::Mated(board.active_player)
-        } else {
-            GameState::Stalemate
-        }
-    } else {
-        GameState::InProgress
     }
 }
