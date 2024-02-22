@@ -211,6 +211,16 @@ fn is_pawn_move(src: Square, dest: Square, player: Color) -> bool {
     }
 }
 
+pub fn is_pawn_promotion(src: Square, dest: Square, piece: PieceType, player: Color) -> bool {
+    if piece != PieceType::Pawn {
+        return false;
+    }
+    match player {
+        Color::White => dest.1 == Rank::_8,
+        Color::Black => dest.1 == Rank::_1,
+    }
+}
+
 pub fn is_move_pseudo_legal(src: Square, dest: Square, piece: PieceType, player: Color) -> bool {
     match piece {
         PieceType::Queen => is_rook_move(src, dest) || is_bishop_move(src, dest),
@@ -219,5 +229,26 @@ pub fn is_move_pseudo_legal(src: Square, dest: Square, piece: PieceType, player:
         PieceType::Knight => is_knight_move(src, dest),
         PieceType::King => is_king_move(src, dest),
         PieceType::Pawn => is_pawn_move(src, dest, player),
+    }
+}
+
+
+pub fn get_pseudo_legal_moves(piece: PieceType, player: Color, origin: Square) -> Vec<Square>{
+    let mk_ray = move |dir: (i8, i8)| RayIter::new(origin, dir);
+    match piece {
+        PieceType::Queen => DirIter::all().flat_map(mk_ray).collect(),
+        PieceType::Rook => DirIter::rook().flat_map(mk_ray).collect(),
+        PieceType::Bishop => DirIter::bishop().flat_map(mk_ray).collect(),
+        PieceType::Knight => KnightHopIter::new(origin).collect(),
+        PieceType::King => DirIter::all().flat_map(|dir| pos_plus(origin, dir)).collect(),
+        PieceType::Pawn => {
+            let forward = match player {
+                Color::White => 1,
+                Color::Black => -1,
+            };
+            [(0, forward), (-1, forward), (1, forward), (0, 2 * forward)].iter().filter_map(move |step| {
+                pos_plus(origin, *step)
+            }).collect()
+        }
     }
 }

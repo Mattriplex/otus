@@ -6,7 +6,7 @@ use self::{
     models::{Color, File, GameState, Move, PieceType, PromotionPieceType, Rank, Square},
     move_checking::{
         is_king_in_check, is_move_legal,
-        square_utils::{pos_plus, DirIter, KnightHopIter, RayIter},
+        square_utils::{get_pseudo_legal_moves, is_pawn_promotion, pos_plus, DirIter, KnightHopIter, RayIter},
     },
 };
 
@@ -274,81 +274,37 @@ impl Board {
         for file in 0..8 {
             for rank in 0..8 {
                 let src = Square(File::from_i8(file).unwrap(), Rank::from_i8(rank).unwrap());
-                let piece = match self.get_piece_at(src) {
-                    Some(piece) => piece,
+                let (piece, player) = match self.get_piece_at(src) {
+                    Some(Piece(piece, player)) => (piece, player),
                     None => continue,
                 };
-                if piece.1 != self.active_player {
+                if player != self.active_player {
                     continue;
                 }
-                if piece.0 == PieceType::Pawn {
-                    for dest in [
-                        (0, pawn_dir),
-                        (0, 2 * pawn_dir),
-                        (1, pawn_dir),
-                        (-1, pawn_dir),
-                    ]
-                    .iter()
-                    .filter_map(|step| pos_plus(src, *step))
-                    {
-                        let move_;
-                        if dest.1 == opp_home_rank {
-                            move_ = Move::Promotion {
-                                src,
-                                dest,
-                                promotion: PromotionPieceType::Queen,
-                            };
-                            if is_move_legal(self, &move_) {
-                                legal_moves.push(move_);
+                for dest in get_pseudo_legal_moves(piece, player, src) {
+                    if is_pawn_promotion(src, dest, piece, player) {
+                        if is_move_legal(self, &Move::Promotion {
+                            src,
+                            dest,
+                            promotion: PromotionPieceType::Queen,
+                        }) {
+                            for promotion_piece in [
+                                PromotionPieceType::Queen,
+                                PromotionPieceType::Rook,
+                                PromotionPieceType::Bishop,
+                                PromotionPieceType::Knight,
+                            ] {
                                 legal_moves.push(Move::Promotion {
                                     src,
                                     dest,
-                                    promotion: PromotionPieceType::Rook,
-                                });
-                                legal_moves.push(Move::Promotion {
-                                    src,
-                                    dest,
-                                    promotion: PromotionPieceType::Bishop,
-                                });
-                                legal_moves.push(Move::Promotion {
-                                    src,
-                                    dest,
-                                    promotion: PromotionPieceType::Knight,
+                                    promotion: promotion_piece,
                                 });
                             }
-                        } else {
-                            move_ = Move::Normal { src, dest };
-                            if is_move_legal(self, &move_) {
-                                legal_moves.push(move_);
-                            }
                         }
-                    }
-                } else if piece.0 == PieceType::Knight {
-                    for dest in KnightHopIter::new(src) {
-                        let move_ = Move::Normal { src, dest };
-                        if is_move_legal(self, &move_) {
-                            legal_moves.push(move_);
-                        }
-                    }
-                } else if piece.0 == PieceType::King {
-                    for dest in DirIter::all().filter_map(|dir| pos_plus(src, dir)) {
-                        let move_ = Move::Normal { src, dest };
-                        if is_move_legal(self, &move_) {
-                            legal_moves.push(move_);
-                        }
-                    }
-                } else {
-                    for dir in match piece.0 {
-                        PieceType::Rook => DirIter::rook(),
-                        PieceType::Bishop => DirIter::bishop(),
-                        PieceType::Queen => DirIter::all(),
-                        _ => unreachable!(),
-                    } {
-                        for dest in RayIter::new(src, dir) {
-                            let move_ = Move::Normal { src, dest };
-                            if is_move_legal(self, &move_) {
-                                legal_moves.push(move_);
-                            }
+                    } else {
+                        let m = Move::Normal { src, dest };
+                        if is_move_legal(self, &m) {
+                            legal_moves.push(m);
                         }
                     }
                 }
@@ -377,23 +333,3 @@ impl Board {
     }
 }
 
-pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) -> GameState {
-    let mut board = Board::default();
-    loop {
-        let m = match board.active_player {
-            Color::White => white_player.make_move(&board),
-            Color::Black => black_player.make_move(&board),
-        };
-        match move_checking::apply_move(&board, &m) {
-            Ok(new_board) => {
-                board = new_board;
-                match board.get_gamestate() {
-                    GameState::InProgress => (),
-                    gs => return gs,
-                }
-            }
-            // Illegal move, game is forfeit
-            Err(_) => return GameState::Mated(board.active_player),
-        }
-    }
-}
