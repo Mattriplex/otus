@@ -6,6 +6,7 @@ use uci::run_uci_engine;
 
 mod chess;
 mod uci;
+mod search;
 
 fn main() {
     run_uci_engine(&RandomPlayer);
