@@ -193,7 +193,7 @@ fn perft(board: &Board, depth: u8) -> u64 {
     }
 
     let mut count = 0;
-    for mv in get_legal_moves(board) {
+    for mv in board.get_legal_moves() {
         let new_board = apply_move(&board, &mv).unwrap();
         let new_positions = perft(&new_board, depth - 1);
         count += new_positions;

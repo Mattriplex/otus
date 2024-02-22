@@ -5,9 +5,9 @@ use players::{HumanPlayer, RandomPlayer};
 use uci::run_uci_engine;
 
 mod board;
-mod uci;
-mod search;
 mod players;
+mod search;
+mod uci;
 
 fn main() {
     run_uci_engine(&RandomPlayer);
