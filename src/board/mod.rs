@@ -261,6 +261,7 @@ impl Board {
                 Some(p) => p.fmt(f),
                 None => write!(f, "."),
             }?;
+            write!(f, " ")?
         }
         Ok(())
     }

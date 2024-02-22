@@ -1,5 +1,8 @@
-use crate::board::{board_utils::PlayerPieceIter, models::{GameState, PieceType}, Board};
-
+use crate::board::{
+    board_utils::PlayerPieceIter,
+    models::{GameState, PieceType},
+    Board,
+};
 
 pub fn get_material_eval(board: &Board) -> f32 {
     if board.get_gamestate() == GameState::Mated(board.active_player) {

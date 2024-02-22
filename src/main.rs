@@ -10,13 +10,18 @@ mod search;
 mod uci;
 
 fn main() {
+    let args = std::env::args().collect::<Vec<String>>();
+    if args.len() > 1 && args[1] == "debug" {
+        run_test_game();
+        return;
+    }
     run_uci_engine(&Otus);
 }
 
 fn run_test_game() {
     let human_player = HumanPlayer;
-    let random_player = RandomPlayer;
-    match run_game(&human_player, &random_player) {
+    let otus = Otus;
+    match run_game(&human_player, &otus) {
         GameState::Mated(color) => println!("{} wins!", color.opponent()),
         GameState::Stalemate => println!("Stalemate!"),
         GameState::InProgress => unreachable!("Game should have ended"),
