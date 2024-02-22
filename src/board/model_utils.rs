@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use crate::chess::models::{Color, Piece, PromotionPieceType};
+use crate::board::models::{Color, Piece, PromotionPieceType};
 
 use super::{
     models::{File, Move, PieceType, Rank, Square},

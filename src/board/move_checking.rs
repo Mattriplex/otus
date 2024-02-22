@@ -2,7 +2,7 @@ pub mod square_utils;
 #[cfg(test)]
 mod tests;
 
-use crate::chess::{Board, Move};
+use crate::board::{Board, Move};
 
 use self::square_utils::{
     is_move_pseudo_legal, pos_plus, DirIter, KnightHopIter, RayIter, SlideIter,

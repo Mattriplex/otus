@@ -1,9 +1,8 @@
-use crate::chess::PromotionPieceType;
+use crate::board::{models::{Move, PromotionPieceType, Square}, move_checking::{is_move_legal, is_promotion_move}, Board};
 
-use super::{
-    move_checking::{is_move_legal, is_promotion_move},
-    Board, ChessPlayer, HumanPlayer, Move, Square,
-};
+use super::{ChessPlayer, HumanPlayer};
+
+
 
 impl HumanPlayer {
     fn try_get_move_input(&self, board: &Board) -> Result<Move, String> {

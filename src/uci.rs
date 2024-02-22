@@ -1,4 +1,4 @@
-use crate::chess::{models::Move, move_checking::apply_move, player::ChessPlayer, Board};
+use crate::{board::{models::Move, move_checking::apply_move, Board}, players::ChessPlayer};
 
 fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
     let mut board = initial_board.clone();

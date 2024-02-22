@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use crate::chess::{get_legal_moves, models::Move, Board};
+use crate::board::{get_legal_moves, models::Move, Board};
 
 use super::{ChessPlayer, RandomPlayer};
 

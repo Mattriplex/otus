@@ -1,4 +1,4 @@
-use crate::chess::*;
+use crate::board::*;
 
 use self::move_checking::apply_move;
 

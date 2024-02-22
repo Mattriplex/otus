@@ -1,4 +1,4 @@
-use super::{move_checking, Board, Move, Square};
+use crate::board::{models::Move, Board};
 
 pub mod human_player;
 pub mod random_player;

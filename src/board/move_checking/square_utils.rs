@@ -1,4 +1,4 @@
-use crate::chess::models::{Color, File, PieceType, Rank, Square};
+use crate::board::models::{Color, File, PieceType, Rank, Square};
 
 pub struct SlideIter {
     current: Square,

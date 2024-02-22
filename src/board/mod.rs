@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use crate::chess::models::Piece;
+use crate::{board::models::Piece, players::ChessPlayer};
 
 use self::{
     models::{Color, File, GameState, Move, PieceType, PromotionPieceType, Rank, Square},
@@ -8,14 +8,12 @@ use self::{
         is_king_in_check, is_move_legal,
         square_utils::{pos_plus, DirIter, KnightHopIter, RayIter},
     },
-    player::ChessPlayer,
 };
 
 pub mod move_checking;
 
 pub mod model_utils;
 pub mod models;
-pub mod player;
 
 #[cfg(test)]
 mod tests;
@@ -23,7 +21,7 @@ mod tests;
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Board {
     squares: [[Option<Piece>; 8]; 8],
-    active_player: Color,
+    pub active_player: Color,
     castling_rights: u8, // KQkq
     en_passant_target: Option<Square>,
 }

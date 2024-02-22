@@ -1,12 +1,13 @@
-use chess::model_utils::Opponent;
-use chess::models::GameState;
-use chess::player::{HumanPlayer, RandomPlayer};
-use chess::run_game;
+use board::model_utils::Opponent;
+use board::models::GameState;
+use board::run_game;
+use players::{HumanPlayer, RandomPlayer};
 use uci::run_uci_engine;
 
-mod chess;
+mod board;
 mod uci;
 mod search;
+mod players;
 
 fn main() {
     run_uci_engine(&RandomPlayer);

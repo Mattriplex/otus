@@ -1,13 +1,13 @@
 use rstest::rstest;
 
-use crate::chess::model_utils::Opponent;
-use crate::chess::move_checking::apply_move;
-use crate::chess::move_checking::is_move_legal;
-use crate::chess::Color::*;
-use crate::chess::File::*;
-use crate::chess::PieceType::*;
-use crate::chess::Rank::*;
-use crate::chess::{Board, Color, File, Move, Piece, PieceType, Rank, Square};
+use crate::board::model_utils::Opponent;
+use crate::board::move_checking::apply_move;
+use crate::board::move_checking::is_move_legal;
+use crate::board::Color::*;
+use crate::board::File::*;
+use crate::board::PieceType::*;
+use crate::board::Rank::*;
+use crate::board::{Board, Color, File, Move, Piece, PieceType, Rank, Square};
 
 #[rstest]
 #[case(White)]
@@ -280,7 +280,7 @@ fn test_promotion_move() {
     let move_ = Move::Promotion {
         src: Square(F, _2),
         dest: Square(F, _1),
-        promotion: crate::chess::PromotionPieceType::Queen,
+        promotion: crate::board::PromotionPieceType::Queen,
     };
 
     let result = apply_move(&board, &move_).unwrap();
@@ -301,7 +301,7 @@ fn test_promotion_capture() {
     let move_ = Move::Promotion {
         src: Square(B, _7),
         dest: Square(A, _8),
-        promotion: crate::chess::PromotionPieceType::Knight,
+        promotion: crate::board::PromotionPieceType::Knight,
     };
 
     let result = apply_move(&board, &move_).unwrap();
