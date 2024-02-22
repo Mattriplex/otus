@@ -1,6 +1,6 @@
-use board::{model_utils::Opponent, Board};
 use board::models::{Color, GameState};
 use board::move_checking;
+use board::{model_utils::Opponent, Board};
 use players::{ChessPlayer, HumanPlayer, RandomPlayer};
 use uci::run_uci_engine;
 

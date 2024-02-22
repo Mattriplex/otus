@@ -6,7 +6,9 @@ use self::{
     models::{Color, File, GameState, Move, PieceType, PromotionPieceType, Rank, Square},
     move_checking::{
         is_king_in_check, is_move_legal,
-        square_utils::{get_pseudo_legal_moves, is_pawn_promotion, pos_plus, DirIter, KnightHopIter, RayIter},
+        square_utils::{
+            get_pseudo_legal_moves, is_pawn_promotion, pos_plus, DirIter, KnightHopIter, RayIter,
+        },
     },
 };
 
@@ -282,12 +284,15 @@ impl Board {
                     continue;
                 }
                 for dest in get_pseudo_legal_moves(piece, player, src) {
-                    if is_pawn_promotion(src, dest, piece, player) {
-                        if is_move_legal(self, &Move::Promotion {
-                            src,
-                            dest,
-                            promotion: PromotionPieceType::Queen,
-                        }) {
+                    if is_pawn_promotion(dest, piece, player) {
+                        if is_move_legal(
+                            self,
+                            &Move::Promotion {
+                                src,
+                                dest,
+                                promotion: PromotionPieceType::Queen,
+                            },
+                        ) {
                             for promotion_piece in [
                                 PromotionPieceType::Queen,
                                 PromotionPieceType::Rook,
@@ -332,4 +337,3 @@ impl Board {
         }
     }
 }
-
