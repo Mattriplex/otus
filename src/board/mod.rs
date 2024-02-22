@@ -3,6 +3,7 @@ use std::fmt::{self, Display};
 use crate::{board::models::Piece, players::ChessPlayer};
 
 use self::{
+    board_utils::PlayerPieceIter,
     models::{Color, File, GameState, Move, PieceType, PromotionPieceType, Rank, Square},
     move_checking::{
         is_king_in_check, is_move_legal,
@@ -12,10 +13,10 @@ use self::{
     },
 };
 
-pub mod move_checking;
-
+pub mod board_utils;
 pub mod model_utils;
 pub mod models;
+pub mod move_checking;
 
 #[cfg(test)]
 mod tests;
@@ -269,48 +270,34 @@ impl Board {
     // step 2: filter illegal moves
     pub fn get_legal_moves(&self) -> Vec<Move> {
         let mut legal_moves = Vec::new();
-        let (opp_home_rank, pawn_dir) = match self.active_player {
-            Color::White => (Rank::_8, 1),
-            Color::Black => (Rank::_1, -1),
-        };
-        for file in 0..8 {
-            for rank in 0..8 {
-                let src = Square(File::from_i8(file).unwrap(), Rank::from_i8(rank).unwrap());
-                let (piece, player) = match self.get_piece_at(src) {
-                    Some(Piece(piece, player)) => (piece, player),
-                    None => continue,
-                };
-                if player != self.active_player {
-                    continue;
-                }
-                for dest in get_pseudo_legal_moves(piece, player, src) {
-                    if is_pawn_promotion(dest, piece, player) {
-                        if is_move_legal(
-                            self,
-                            &Move::Promotion {
+        for (piece, src) in PlayerPieceIter::new(self, self.active_player) {
+            for dest in get_pseudo_legal_moves(piece, self.active_player, src) {
+                if is_pawn_promotion(dest, piece, self.active_player) {
+                    if is_move_legal(
+                        self,
+                        &Move::Promotion {
+                            src,
+                            dest,
+                            promotion: PromotionPieceType::Queen,
+                        },
+                    ) {
+                        for promotion_piece in [
+                            PromotionPieceType::Queen,
+                            PromotionPieceType::Rook,
+                            PromotionPieceType::Bishop,
+                            PromotionPieceType::Knight,
+                        ] {
+                            legal_moves.push(Move::Promotion {
                                 src,
                                 dest,
-                                promotion: PromotionPieceType::Queen,
-                            },
-                        ) {
-                            for promotion_piece in [
-                                PromotionPieceType::Queen,
-                                PromotionPieceType::Rook,
-                                PromotionPieceType::Bishop,
-                                PromotionPieceType::Knight,
-                            ] {
-                                legal_moves.push(Move::Promotion {
-                                    src,
-                                    dest,
-                                    promotion: promotion_piece,
-                                });
-                            }
+                                promotion: promotion_piece,
+                            });
                         }
-                    } else {
-                        let m = Move::Normal { src, dest };
-                        if is_move_legal(self, &m) {
-                            legal_moves.push(m);
-                        }
+                    }
+                } else {
+                    let m = Move::Normal { src, dest };
+                    if is_move_legal(self, &m) {
+                        legal_moves.push(m);
                     }
                 }
             }

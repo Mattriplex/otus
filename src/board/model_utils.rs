@@ -66,6 +66,7 @@ impl Display for Rank {
 }
 
 impl File {
+    // TODO possible optimisation: work at usage sites with unreachable!() instead of Option
     pub fn from_i8(i: i8) -> Option<File> {
         match i {
             0 => Some(File::A),

@@ -1,5 +1,30 @@
 use crate::board::models::{Color, File, PieceType, Rank, Square};
 
+pub struct SquareIter {
+    current: usize,
+}
+
+impl SquareIter {
+    pub fn new() -> SquareIter {
+        SquareIter { current: 0 }
+    }
+}
+
+impl Iterator for SquareIter {
+    type Item = Square;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current < 64 {
+            let file = File::from_i8((self.current % 8) as i8).unwrap();
+            let rank = Rank::from_i8((self.current / 8) as i8).unwrap();
+            self.current += 1;
+            Some(Square(file, rank))
+        } else {
+            None
+        }
+    }
+}
+
 pub struct SlideIter {
     current: Square,
     dest: Square,
