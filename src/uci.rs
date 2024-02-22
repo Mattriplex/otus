@@ -1,10 +1,12 @@
 use crate::chess::{models::Move, move_checking::apply_move, player::ChessPlayer, Board};
 
-fn parse_moves_list(move_tokens: Vec<&str>) -> Vec<Move> {
-    move_tokens
-        .iter()
-        .map(|move_| Move::from_uci_string(move_).expect("Invalid move syntax"))
-        .collect()
+fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
+    let mut board = initial_board.clone();
+    for token in move_tokens {
+        let move_ = Move::from_uci_string(&board, token).expect("Invalid move syntax");
+        board = apply_move(&board, &move_).expect("Illegal move");
+    }
+    board
 }
 
 fn process_position_command(arguments: Vec<&str>, board: &mut Board) {
@@ -15,20 +17,14 @@ fn process_position_command(arguments: Vec<&str>, board: &mut Board) {
         "startpos" => {
             *board = Board::default();
             if arguments.len() > 1 && arguments[1].to_lowercase() == "moves" {
-                let moves = parse_moves_list(arguments[2..].to_vec());
-                for move_ in moves {
-                    *board = apply_move(board, &move_).expect("Illegal move");
-                }
+                *board = process_moves_list(board, arguments[2..].to_vec());
             }
         }
         "fen" => {
             let fen = arguments[1..7].join(" ");
             *board = Board::from_fen(&fen).expect("Invalid FEN string");
             if arguments.len() > 7 && arguments[7].to_lowercase() == "moves" {
-                let moves = parse_moves_list(arguments[8..].to_vec());
-                for move_ in moves {
-                    *board = apply_move(board, &move_).expect("Illegal move");
-                }
+                *board = process_moves_list(board, arguments[8..].to_vec());
             }
         }
         _ => {

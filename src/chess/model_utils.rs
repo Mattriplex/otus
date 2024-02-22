@@ -187,19 +187,32 @@ impl fmt::Display for Board {
 
 impl Move {
     //no spaces,
-    pub fn from_uci_string(move_str: &str) -> Result<Move, String> {
-        if move_str == "O-O" {
-            return Ok(Move::CastleKingside);
-        }
-        if move_str == "O-O-O" {
-            // TODO this might be wrong
-            return Ok(Move::CastleQueenside);
-        }
+    pub fn from_uci_string(board: &Board, move_str: &str) -> Result<Move, String> {
         if move_str.len() < 4 {
             return Err("Error parsing move".to_string());
         }
         let from = Square::from_string(&move_str[0..2])?;
         let to = Square::from_string(&move_str[2..4])?;
+        if move_str == "e1g1"
+            && Some(Piece(PieceType::King, Color::White)) == board.get_piece_at(from)
+        {
+            return Ok(Move::CastleKingside);
+        }
+        if move_str == "e1c1"
+            && Some(Piece(PieceType::King, Color::White)) == board.get_piece_at(from)
+        {
+            return Ok(Move::CastleQueenside);
+        }
+        if move_str == "e8g8"
+            && Some(Piece(PieceType::King, Color::Black)) == board.get_piece_at(from)
+        {
+            return Ok(Move::CastleKingside);
+        }
+        if move_str == "e8c8"
+            && Some(Piece(PieceType::King, Color::Black)) == board.get_piece_at(from)
+        {
+            return Ok(Move::CastleQueenside);
+        }
         if move_str.len() == 5 {
             let promotion = match &move_str[4..5] {
                 "n" => PromotionPieceType::Knight,
