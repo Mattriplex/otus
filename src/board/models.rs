@@ -69,6 +69,7 @@ pub enum Move {
     },
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum GameState {
     InProgress,
     Mated(Color),
