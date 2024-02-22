@@ -265,35 +265,36 @@ impl Board {
         Ok(())
     }
 
-    // TODO clean up
-    // step 1: get list of possible moves (depends on piece)
-    // step 2: filter illegal moves
+    fn try_add_promotion_moves(&self, src: Square, dest: Square, moves: &mut Vec<Move>) {
+        if is_move_legal(
+            self,
+            &Move::Promotion {
+                src,
+                dest,
+                promotion: PromotionPieceType::Queen,
+            },
+        ) {
+            for promotion_piece in [
+                PromotionPieceType::Queen,
+                PromotionPieceType::Rook,
+                PromotionPieceType::Bishop,
+                PromotionPieceType::Knight,
+            ] {
+                moves.push(Move::Promotion {
+                    src,
+                    dest,
+                    promotion: promotion_piece,
+                });
+            }
+        }
+    }
+
     pub fn get_legal_moves(&self) -> Vec<Move> {
         let mut legal_moves = Vec::new();
         for (piece, src) in PlayerPieceIter::new(self, self.active_player) {
             for dest in get_pseudo_legal_moves(piece, self.active_player, src) {
                 if is_pawn_promotion(dest, piece, self.active_player) {
-                    if is_move_legal(
-                        self,
-                        &Move::Promotion {
-                            src,
-                            dest,
-                            promotion: PromotionPieceType::Queen,
-                        },
-                    ) {
-                        for promotion_piece in [
-                            PromotionPieceType::Queen,
-                            PromotionPieceType::Rook,
-                            PromotionPieceType::Bishop,
-                            PromotionPieceType::Knight,
-                        ] {
-                            legal_moves.push(Move::Promotion {
-                                src,
-                                dest,
-                                promotion: promotion_piece,
-                            });
-                        }
-                    }
+                    self.try_add_promotion_moves(src, dest, &mut legal_moves);
                 } else {
                     let m = Move::Normal { src, dest };
                     if is_move_legal(self, &m) {
