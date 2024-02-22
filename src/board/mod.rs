@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use crate::{board::models::Piece, players::ChessPlayer};
+use crate::board::models::Piece;
 
 use self::{
     board_utils::PlayerPieceIter,
@@ -8,7 +8,7 @@ use self::{
     move_checking::{
         is_king_in_check, is_move_legal,
         square_utils::{
-            get_pseudo_legal_moves, is_pawn_promotion, pos_plus, DirIter, KnightHopIter, RayIter,
+            get_pseudo_legal_moves, is_pawn_promotion,
         },
     },
 };

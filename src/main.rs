@@ -1,13 +1,6 @@
-use board::models::{Color, GameState};
-use board::move_checking;
-use board::{model_utils::Opponent, Board};
-use players::{ChessPlayer, HumanPlayer, Otus, RandomPlayer};
-use uci::run_uci_engine;
+use otus::{board::{model_utils::Opponent, models::{Color, GameState}, move_checking, Board}, players::{ChessPlayer, HumanPlayer, Otus}, uci::run_uci_engine};
 
-mod board;
-mod players;
-mod search;
-mod uci;
+
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
