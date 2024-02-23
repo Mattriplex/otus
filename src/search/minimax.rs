@@ -15,7 +15,7 @@ pub fn search_minimax(board: &Board, depth: u32) -> Move {
     let mut best_score = f32::MIN;
     for move_ in moves {
         let new_board = apply_move(board, &move_).unwrap();
-        let score = -nega_max(&new_board, depth - 1);
+        let score = -nega_max(&new_board, depth - 1) + get_noise(); // add noise to shuffle moves of equal value
         if score > best_score {
             best_score = score;
             best_move = move_;
@@ -32,7 +32,7 @@ fn nega_max(board: &Board, depth: u32) -> f32 {
     let mut best_score = f32::MIN;
     for move_ in moves {
         let new_board = apply_move(board, &move_).unwrap();
-        let score = -nega_max(&new_board, depth - 1) + get_noise(); // add noise to shuffle moves of equal value
+        let score = -nega_max(&new_board, depth - 1);
         if score > best_score {
             best_score = score;
         }

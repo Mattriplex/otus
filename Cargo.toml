@@ -7,4 +7,11 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.5"
+
+[dev-dependencies]
+criterion = "0.5.1"
 rstest = "0.18.2"
+
+[[bench]]
+name = "search_benchmark"
+harness = false
