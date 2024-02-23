@@ -112,22 +112,14 @@ const KNIGHT_HOPS: [(i8, i8); 8] = [
 
 pub struct KnightHopIter {
     current: usize,
-    positions: [Option<Square>; 8],
+    origin: Square,
 }
 
 impl KnightHopIter {
     pub fn new(origin: Square) -> KnightHopIter {
-        let mut p_idx = 0;
-        let mut positions = [None; 8];
-        for hop in KNIGHT_HOPS.iter() {
-            if let Some(pos) = pos_plus(origin, *hop) {
-                positions[p_idx] = Some(pos);
-                p_idx += 1;
-            }
-        }
         KnightHopIter {
             current: 0,
-            positions,
+            origin,
         }
     }
 }
@@ -136,13 +128,14 @@ impl Iterator for KnightHopIter {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current < 8 {
-            let pos = self.positions[self.current];
+        while self.current < 8 {
+            let hop = KNIGHT_HOPS[self.current];
             self.current += 1;
-            pos
-        } else {
-            None
+            if let Some(pos) = pos_plus(self.origin, hop) {
+                return Some(pos);
+            }
         }
+        None
     }
 }
 

@@ -1,14 +1,22 @@
-use otus::{board::{model_utils::Opponent, models::{Color, GameState}, move_checking, Board}, players::{ChessPlayer, HumanPlayer, Otus}, uci::run_uci_engine};
+use otus::{board::{self, model_utils::Opponent, models::{Color, GameState}, move_checking, Board}, players::{ChessPlayer, HumanPlayer, Otus}, search::minimax::search_minimax, uci::run_uci_engine};
 
 
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
-    if args.len() > 1 && args[1] == "debug" {
-        run_test_game();
-        return;
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "debug" => { run_test_game(); return; },
+            "perftest" => { 
+                let board = Board::default();
+                println!("{}", search_minimax(&board, 4));
+                return;
+            }
+            _ => println!("Invalid argument"),
+        }
+    } else {
+        run_uci_engine(&Otus);
     }
-    run_uci_engine(&Otus);
 }
 
 fn run_test_game() {
