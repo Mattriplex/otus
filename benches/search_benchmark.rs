@@ -8,5 +8,7 @@ pub fn minimax_benchmark(c: &mut Criterion) {
 //baseline 194ms
 //moving noise up to outer search function -> 169ms
 //improve knight hop iter -> 154ms
+//killing other processes -> 97ms
+
 criterion_group!(benches, minimax_benchmark);
 criterion_main!(benches);

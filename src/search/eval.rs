@@ -1,5 +1,8 @@
 use crate::board::{
-    board_utils::PlayerPieceIter, models::{GameState, Piece, PieceType}, move_checking::square_utils::SquareIter, Board
+    board_utils::PlayerPieceIter,
+    models::{GameState, Piece, PieceType},
+    move_checking::square_utils::SquareIter,
+    Board,
 };
 
 pub fn get_material_eval(board: &Board) -> f32 {

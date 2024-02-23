@@ -117,10 +117,7 @@ pub struct KnightHopIter {
 
 impl KnightHopIter {
     pub fn new(origin: Square) -> KnightHopIter {
-        KnightHopIter {
-            current: 0,
-            origin,
-        }
+        KnightHopIter { current: 0, origin }
     }
 }
 
@@ -250,6 +247,7 @@ pub fn is_move_pseudo_legal(src: Square, dest: Square, piece: PieceType, player:
     }
 }
 
+// add promotions
 pub fn get_pseudo_legal_moves(piece: PieceType, player: Color, origin: Square) -> Vec<Square> {
     let mk_ray = move |dir: (i8, i8)| RayIter::new(origin, dir);
     match piece {
@@ -261,14 +259,21 @@ pub fn get_pseudo_legal_moves(piece: PieceType, player: Color, origin: Square) -
             .flat_map(|dir| pos_plus(origin, dir))
             .collect(),
         PieceType::Pawn => {
-            let forward = match player {
-                Color::White => 1,
-                Color::Black => -1,
+            let (forward, opp_home_rank) = match player {
+                Color::White => (1, Rank::_7),
+                Color::Black => (-1, Rank::_2),
             };
-            [(0, forward), (-1, forward), (1, forward), (0, 2 * forward)]
-                .iter()
-                .filter_map(move |step| pos_plus(origin, *step))
-                .collect()
+            if origin.1 == opp_home_rank {
+                [(0, forward), (-1, forward), (1, forward)]
+                    .iter()
+                    .filter_map(move |step| pos_plus(origin, *step))
+                    .collect()
+            } else {
+                [(0, forward), (-1, forward), (1, forward), (0, 2 * forward)]
+                    .iter()
+                    .filter_map(move |step| pos_plus(origin, *step))
+                    .collect()
+            }
         }
     }
 }

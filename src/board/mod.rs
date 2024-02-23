@@ -8,7 +8,7 @@ use self::{
     move_checking::{
         is_king_in_check, is_move_legal,
         square_utils::{
-            get_pseudo_legal_moves, is_pawn_promotion,
+            get_pseudo_legal_moves, is_pawn_promotion, pos_plus, DirIter, KnightHopIter, RayIter,
         },
     },
 };
@@ -292,14 +292,59 @@ impl Board {
 
     pub fn get_legal_moves(&self) -> Vec<Move> {
         let mut legal_moves = Vec::new();
+        let (forward, opp_home_rank) = match self.active_player {
+            Color::White => (1, Rank::_7),
+            Color::Black => (-1, Rank::_2),
+        };
         for (piece, src) in PlayerPieceIter::new(self, self.active_player) {
-            for dest in get_pseudo_legal_moves(piece, self.active_player, src) {
-                if is_pawn_promotion(dest, piece, self.active_player) {
-                    self.try_add_promotion_moves(src, dest, &mut legal_moves);
-                } else {
-                    let m = Move::Normal { src, dest };
-                    if is_move_legal(self, &m) {
-                        legal_moves.push(m);
+            let mk_ray = move |dir: (i8, i8)| RayIter::new(src, dir);
+            match piece {
+                PieceType::Queen => DirIter::all().flat_map(mk_ray).for_each(|dest| {
+                    if is_move_legal(self, &Move::Normal { src, dest }) {
+                        legal_moves.push(Move::Normal { src, dest });
+                    }
+                }),
+                PieceType::Rook => DirIter::rook().flat_map(mk_ray).for_each(|dest| {
+                    if is_move_legal(self, &Move::Normal { src, dest }) {
+                        legal_moves.push(Move::Normal { src, dest });
+                    }
+                }),
+                PieceType::Bishop => DirIter::bishop().flat_map(mk_ray).for_each(|dest| {
+                    if is_move_legal(self, &Move::Normal { src, dest }) {
+                        legal_moves.push(Move::Normal { src, dest });
+                    }
+                }),
+                PieceType::Knight => KnightHopIter::new(src).for_each(|dest| {
+                    if is_move_legal(self, &Move::Normal { src, dest }) {
+                        legal_moves.push(Move::Normal { src, dest });
+                    }
+                }),
+                PieceType::King => {
+                    DirIter::all()
+                        .flat_map(|dir| pos_plus(src, dir))
+                        .for_each(|dest| {
+                            if is_move_legal(self, &Move::Normal { src, dest }) {
+                                legal_moves.push(Move::Normal { src, dest });
+                            }
+                        })
+                }
+                PieceType::Pawn => {
+                    if src.1 == opp_home_rank {
+                        [(0, forward), (-1, forward), (1, forward)]
+                            .iter()
+                            .filter_map(move |step| pos_plus(src, *step))
+                            .for_each(|dest| {
+                                self.try_add_promotion_moves(src, dest, &mut legal_moves);
+                            });
+                    } else {
+                        [(0, forward), (-1, forward), (1, forward), (0, 2 * forward)]
+                            .iter()
+                            .filter_map(move |step| pos_plus(src, *step))
+                            .for_each(|dest| {
+                                if is_move_legal(self, &Move::Normal { src, dest }) {
+                                    self.try_add_promotion_moves(src, dest, &mut legal_moves);
+                                }
+                            });
                     }
                 }
             }
