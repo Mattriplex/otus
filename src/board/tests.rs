@@ -223,7 +223,7 @@ fn test_perf_kiwipete() {
 fn test_perf_3() {
     let board = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
 
-    assert_eq!(perft(&board, 3), 2812);
+    assert_eq!(perft(&board, 4), 43238);
 }
 
 #[test]
