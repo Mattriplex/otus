@@ -6,12 +6,6 @@ use crate::board::{
 };
 
 pub fn get_material_eval(board: &Board) -> f32 {
-    if board.get_gamestate() == GameState::Mated(board.active_player) {
-        return f32::MIN;
-    }
-    if board.get_gamestate() == GameState::Stalemate {
-        return 0.0;
-    }
     let mut material_balance = 0.0;
     for square in SquareIter::new() {
         if let Some(Piece(piece, owner)) = board.get_piece_at(square) {

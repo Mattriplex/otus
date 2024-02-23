@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use crate::board::{models::Move, move_checking::apply_move, Board};
+use crate::board::{models::{GameState, Move}, move_checking::apply_move, Board};
 
 use super::eval::get_material_eval;
 
@@ -25,11 +25,18 @@ pub fn search_minimax(board: &Board, depth: u32) -> Move {
 }
 
 fn nega_max(board: &Board, depth: u32) -> f32 {
+    let gamestate = board.get_gamestate();
+    if gamestate == GameState::Mated(board.active_player) {
+        return f32::MIN;
+    }
+    if gamestate == GameState::Stalemate {
+        return 0.0;
+    }
     if depth == 0 {
         return get_material_eval(board);
     }
     let moves = board.get_legal_moves();
-    let mut best_score = f32::MIN;
+    let mut best_score = f32::MIN; // if no legal moves, return worst possible score TODO fix this for stalemate
     for move_ in moves {
         let new_board = apply_move(board, &move_).unwrap();
         let score = -nega_max(&new_board, depth - 1);

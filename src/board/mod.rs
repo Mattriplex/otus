@@ -416,7 +416,7 @@ impl Board {
     }
 
     pub fn get_gamestate(&self) -> GameState {
-        if self.has_legal_moves(){
+        if !self.has_legal_moves() {
             if is_king_in_check(self) {
                 GameState::Mated(self.active_player)
             } else {
