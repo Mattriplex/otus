@@ -1,3 +1,4 @@
+
 use std::fmt::{self, Display};
 
 use crate::board::models::Piece;
@@ -23,41 +24,95 @@ pub mod move_checking;
 #[cfg(test)]
 mod tests;
 
+
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Board {
-    squares: [[Option<Piece>; 8]; 8],
+    bitboards: [[u64; 6]; 2],
     pub active_player: Color,
-    pub castling_rights: u8, // KQkq
-    pub en_passant_target: Option<Square>,
+    castling_rights: u8, // KQkq
+    en_passant_target: Option<Square>, // TODO combine with castling rights
+}
+
+fn piece_of_u8(piece_idx: u8) -> PieceType {
+    match piece_idx {
+        0 => PieceType::Pawn,
+        1 => PieceType::Knight,
+        2 => PieceType::Bishop,
+        3 => PieceType::Rook,
+        4 => PieceType::Queen,
+        5 => PieceType::King,
+        _ => unreachable!(),
+    }
 }
 
 impl Board {
+    pub fn empty() -> Board {
+        Board {
+            bitboards: [[0; 6]; 2],
+            active_player: Color::White,
+            castling_rights: 0,
+            en_passant_target: None,
+        }
+    }
+
     pub fn default() -> Board {
         Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 
+
+
     fn get_piece(&self, file: File, rank: Rank) -> Option<Piece> {
-        self.squares[rank as usize][file as usize]
+        for piece in 0..6 {
+            if self.bitboards[0][piece] & (1 << (rank as u8 * 8 + file as u8)) != 0 {
+                return Some(Piece(piece_of_u8(piece as u8), Color::White));
+            }
+            if self.bitboards[1][piece] & (1 << (rank as u8 * 8 + file as u8)) != 0 {
+                return Some(Piece(piece_of_u8(piece as u8), Color::Black));
+            }
+        }
+        None
     }
 
     pub fn get_piece_at(&self, pos: Square) -> Option<Piece> {
         self.get_piece(pos.0, pos.1)
     }
 
+    fn set_piece(&mut self, file: File, rank: Rank, piece: Piece) {
+        let square_mask = 1 << (rank as u8 * 8 + file as u8);
+        for i in 0..6 {
+            self.bitboards[0][i] &= !square_mask;
+            self.bitboards[1][i] &= !square_mask;
+        }
+        self.bitboards[piece.1 as usize][piece.0 as usize] |= square_mask;
+    }
+
     fn set_piece_at(&mut self, pos: Square, piece: Piece) {
-        self.squares[pos.1 as usize][pos.0 as usize] = Some(piece);
+        self.set_piece(pos.0, pos.1, piece);
     }
 
     fn set_square(&mut self, pos: Square, piece: Option<Piece>) {
-        self.squares[pos.1 as usize][pos.0 as usize] = piece;
+        self.clear_square(pos);
+        if let Some(piece) = piece {
+            let square_mask = 1 << (pos.1 as u8 * 8 + pos.0 as u8);
+            for i in 0..6 {
+                self.bitboards[0][i] &= !square_mask;
+                self.bitboards[1][i] &= !square_mask;
+            }
+            self.bitboards[piece.1 as usize][piece.0 as usize] |= square_mask;
+        }
     }
 
     fn clear_square(&mut self, pos: Square) {
-        self.squares[pos.1 as usize][pos.0 as usize] = None;
+        let square_mask = 1 << (pos.1 as u8 * 8 + pos.0 as u8);
+        for i in 0..6 {
+            self.bitboards[0][i] &= !square_mask;
+            self.bitboards[1][i] &= !square_mask;
+        }
     }
 
-    fn squares_from_fen(fen_squares: &str) -> Result<[[Option<Piece>; 8]; 8], String> {
-        let mut squares: [[Option<Piece>; 8]; 8] = [[None; 8]; 8];
+    fn squares_from_fen(fen_squares: &str) -> Result<[[u64; 6]; 2], String> {
+        let mut bitboards: [[u64; 6]; 2] = [[0; 6]; 2];
         let mut rank: usize = 7;
         let mut file: usize = 0;
         for c in fen_squares.chars() {
@@ -80,25 +135,25 @@ impl Board {
                     file += empty_squares;
                 }
                 _ => {
-                    let piece = match c {
-                        'p' => Piece(PieceType::Pawn, Color::Black),
-                        'n' => Piece(PieceType::Knight, Color::Black),
-                        'b' => Piece(PieceType::Bishop, Color::Black),
-                        'r' => Piece(PieceType::Rook, Color::Black),
-                        'q' => Piece(PieceType::Queen, Color::Black),
-                        'k' => Piece(PieceType::King, Color::Black),
-                        'P' => Piece(PieceType::Pawn, Color::White),
-                        'N' => Piece(PieceType::Knight, Color::White),
-                        'B' => Piece(PieceType::Bishop, Color::White),
-                        'R' => Piece(PieceType::Rook, Color::White),
-                        'Q' => Piece(PieceType::Queen, Color::White),
-                        'K' => Piece(PieceType::King, Color::White),
+                    let (piece, owner) = match c {
+                        'p' => (PieceType::Pawn, Color::Black),
+                        'n' => (PieceType::Knight, Color::Black),
+                        'b' => (PieceType::Bishop, Color::Black),
+                        'r' => (PieceType::Rook, Color::Black),
+                        'q' => (PieceType::Queen, Color::Black),
+                        'k' => (PieceType::King, Color::Black),
+                        'P' => (PieceType::Pawn, Color::White),
+                        'N' => (PieceType::Knight, Color::White),
+                        'B' => (PieceType::Bishop, Color::White),
+                        'R' => (PieceType::Rook, Color::White),
+                        'Q' => (PieceType::Queen, Color::White),
+                        'K' => (PieceType::King, Color::White),
                         _ => return Err(format!("Invalid character in fen: {}", c)),
                     };
                     if file >= 8 {
                         return Err(format!("Rank {} contains too many pieces", rank + 1));
                     }
-                    squares[rank][file] = Some(piece);
+                    bitboards[owner as usize][piece as usize] |= 1 << (rank * 8 + file);
                     file += 1;
                 }
             }
@@ -106,7 +161,7 @@ impl Board {
         if rank > 0 {
             return Err(format!("Expected {} more ranks", rank));
         }
-        Ok(squares)
+        Ok(bitboards)
     }
 
     fn decode_fen_castling_rights(castling_rights: &str) -> Result<u8, String> {
@@ -129,7 +184,7 @@ impl Board {
         if parts.len() != 6 {
             return Err("Expected 6 parts in fen".to_string());
         }
-        let squares = Self::squares_from_fen(parts[0])?;
+        let bitboards = Self::squares_from_fen(parts[0])?;
         let active_player = match parts[1] {
             "w" => Color::White,
             "b" => Color::Black,
@@ -141,7 +196,7 @@ impl Board {
             s => Some(Square::from_string(s)?),
         };
         Ok(Board {
-            squares,
+            bitboards,
             active_player,
             castling_rights,
             en_passant_target,
@@ -153,7 +208,7 @@ impl Board {
         for rank in (0..8).rev() {
             let mut empty_squares = 0;
             for file in 0..8 {
-                match self.squares[rank][file] {
+                match self.get_piece(File::from_i8(file).unwrap(), Rank::from_i8(rank).unwrap()) {
                     Some(piece) => {
                         if empty_squares > 0 {
                             fen.push_str(&empty_squares.to_string());
@@ -236,7 +291,7 @@ impl Board {
 
     fn fmt_rank(&self, f: &mut fmt::Formatter, rank: usize) -> fmt::Result {
         for file in 0..8 {
-            match self.squares[rank][file] {
+            match self.get_piece(File::from_i8(file).unwrap(), Rank::from_i8(rank as i8).unwrap()) {
                 Some(p) => p.fmt(f),
                 None => write!(f, "."),
             }?;
