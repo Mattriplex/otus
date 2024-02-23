@@ -342,7 +342,7 @@ impl Board {
                             .filter_map(move |step| pos_plus(src, *step))
                             .for_each(|dest| {
                                 if is_move_legal(self, &Move::Normal { src, dest }) {
-                                    self.try_add_promotion_moves(src, dest, &mut legal_moves);
+                                    legal_moves.push(Move::Normal { src, dest });
                                 }
                             });
                     }
@@ -358,9 +358,65 @@ impl Board {
         legal_moves
     }
 
+    fn has_legal_moves(&self) -> bool {
+        let (forward, opp_home_rank) = match self.active_player {
+            Color::White => (1, Rank::_7),
+            Color::Black => (-1, Rank::_2),
+        };
+        for (piece, src) in PlayerPieceIter::new(self, self.active_player) {
+            let mk_ray = move |dir: (i8, i8)| RayIter::new(src, dir);
+            if match piece {
+                PieceType::Queen => DirIter::all().flat_map(mk_ray).any(|dest| {
+                    is_move_legal(self, &Move::Normal { src, dest })
+                }),
+                PieceType::Rook => DirIter::rook().flat_map(mk_ray).any(|dest| {
+                    is_move_legal(self, &Move::Normal { src, dest })
+                }),
+                PieceType::Bishop => DirIter::bishop().flat_map(mk_ray).any(|dest| {
+                    is_move_legal(self, &Move::Normal { src, dest })
+                }),
+                PieceType::Knight => KnightHopIter::new(src).any(|dest| {
+                    is_move_legal(self, &Move::Normal { src, dest })
+                }),
+                PieceType::King => {
+                    DirIter::all()
+                        .flat_map(|dir| pos_plus(src, dir))
+                        .any(|dest| {
+                            is_move_legal(self, &Move::Normal { src, dest })
+                        })
+                }
+                PieceType::Pawn => {
+                    if src.1 == opp_home_rank {
+                        [(0, forward), (-1, forward), (1, forward)]
+                            .iter()
+                            .filter_map(move |step| pos_plus(src, *step))
+                            .any(|dest| {
+                                is_move_legal(self, &Move::Promotion { src, dest, promotion: PromotionPieceType::Queen })
+                            })
+                    } else {
+                        [(0, forward), (-1, forward), (1, forward), (0, 2 * forward)]
+                            .iter()
+                            .filter_map(move |step| pos_plus(src, *step))
+                            .any(|dest| {
+                                is_move_legal(self, &Move::Normal { src, dest })
+                            })
+                    }
+                }
+            } {
+                return true;
+            }
+        }
+        if is_move_legal(self, &Move::CastleKingside {}) {
+            return true;
+        }
+        if is_move_legal(self, &Move::CastleQueenside {}) {
+            return true;
+        }
+        return false;
+    }
+
     pub fn get_gamestate(&self) -> GameState {
-        let legal_moves = self.get_legal_moves();
-        if legal_moves.is_empty() {
+        if self.has_legal_moves(){
             if is_king_in_check(self) {
                 GameState::Mated(self.active_player)
             } else {
