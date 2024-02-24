@@ -1,6 +1,10 @@
 use rand::Rng;
 
-use crate::board::{models::{GameState, Move}, move_checking::apply_move, Board};
+use crate::board::{
+    models::{GameState, Move},
+    move_checking::apply_move,
+    Board,
+};
 
 use super::eval::get_material_eval;
 

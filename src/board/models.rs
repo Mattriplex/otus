@@ -69,6 +69,34 @@ pub enum Move {
     },
 }
 
+/* This move is legal in the context of a specific board. Care must be taken to not apply a LegalMove to the wrong board.
+This way, we can skip the legality checks when applying the move.
+The model is designed in a way to allow all moves to be reversed.
+TODO: model captures for 50 move rule
+*/
+pub enum LegalMove {
+    Normal {
+        src: Square,
+        dest: Square,
+        castle_mask: u8, // relevant for: Non-castling king moves, Rook moves, rook captures
+                         // castle mask will be XOR-ed against the board's castling rights
+    },
+    DoublePawnPush {
+        file: File,
+    },
+    CastleKingside,
+    CastleQueenside,
+    Promotion {
+        src: Square,
+        dest: Square,
+        castle_mask: u8,
+        promotion: PromotionPieceType,
+    },
+    EnPassantCapture {
+        src: Square, //dest is given by boards en passant square
+    },
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum GameState {
     InProgress,

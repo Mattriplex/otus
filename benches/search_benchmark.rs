@@ -11,7 +11,6 @@ pub fn minimax_benchmark(c: &mut Criterion) {
 //killing other processes -> 97ms
 //eliminating heap allocations for pseudo move generation -> 5ms
 
-
 pub fn minimax_benchmark_big(c: &mut Criterion) {
     let mut board = Board::default();
     c.bench_function("minimax_big", |b| b.iter(|| search_minimax(&mut board, 4)));

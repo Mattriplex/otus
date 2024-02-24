@@ -9,7 +9,8 @@ use self::square_utils::{
 };
 
 use super::{
-    model_utils::Opponent, Color, File, Piece, PieceType, PromotionPieceType, Rank, Square,
+    model_utils::Opponent, models::LegalMove, Color, File, Piece, PieceType, PromotionPieceType,
+    Rank, Square,
 };
 
 fn check_move_blocked(
@@ -35,7 +36,7 @@ fn check_move_blocked(
     if piece == PieceType::Pawn {
         // If moving sideways, must capture a piece (special case: en passant)
         if src.0 != dest.0 {
-            if board.get_piece_at(dest).is_none() && board.en_passant_target != Some(dest) {
+            if board.get_piece_at(dest).is_none() && board.en_passant_target.is_none() {
                 return Err("Pawn cannot move sideways without capturing".to_string());
             }
         }
@@ -407,6 +408,385 @@ pub fn apply_move(board: &Board, move_: &Move) -> Result<Board, String> {
         Move::CastleQueenside { .. } => handle_queenside_castle(board),
         Move::Promotion { .. } => handle_promotion_move(board, move_),
     }
+}
+
+// Returns Some if move is an en passant capture
+fn try_get_en_passant_capture(new_board: &mut Board, src: Square) -> Option<LegalMove> {
+    // if move wasn't en passant capture, return
+    let en_passant_target = match new_board.en_passant_target {
+        Some(pos) => pos,
+        None => return None, // no en passant target, thus no en passant capture
+    };
+
+    if !new_board
+        .get_piece_at(en_passant_target)
+        .map(|p| p.0 == PieceType::Pawn)
+        .unwrap_or_default()
+    {
+        return None; // not a pawn move
+    }
+
+    // en passant capture, remove captured pawn
+    let captured_pawn_pos = match new_board.active_player {
+        Color::White => Square(en_passant_target.0, Rank::_5),
+        Color::Black => Square(en_passant_target.0, Rank::_4),
+    };
+    new_board.clear_square(captured_pawn_pos); // remove pawn for subsequent king check in outer function
+                                               //TODO fix this, ugly af, function responsibilities are unclear
+
+    Some(LegalMove::EnPassantCapture { src })
+}
+
+fn get_castling_mask(old_board: &Board, src: Square, dest: Square) -> u8 {
+    // short-circuit if no castling rights to update
+    if old_board.castling_rights == 0b0000 {
+        return 0b0000;
+    }
+    let mut mask: u8 = 0b0000;
+    // does the move capture the opponent's rook?
+    let (home_rank, opp_home_rank) = match old_board.active_player {
+        Color::White => (Rank::_1, Rank::_8),
+        Color::Black => (Rank::_8, Rank::_1),
+    };
+    if dest == Square(File::A, opp_home_rank)
+        && old_board.can_castle_queenside(old_board.active_player.opponent())
+    {
+        mask |= match old_board.active_player {
+            Color::White => 0b0001,
+            Color::Black => 0b0100,
+        };
+    } else if dest == Square(File::H, opp_home_rank)
+        && old_board.can_castle_kingside(old_board.active_player.opponent())
+    {
+        mask |= match old_board.active_player {
+            Color::White => 0b0010,
+            Color::Black => 0b1000,
+        };
+    }
+    if old_board.can_castle_kingside(old_board.active_player)
+        || old_board.can_castle_queenside(old_board.active_player)
+    {
+        // does the move move the king?
+        if src == Square(File::E, home_rank) {
+            mask |= match old_board.active_player {
+                Color::White => 0b1100,
+                Color::Black => 0b0011,
+            };
+        } else if src == Square(File::H, home_rank) {
+            // does the move move a rook?
+
+            mask |= match old_board.active_player {
+                Color::White => 0b1000,
+                Color::Black => 0b0010,
+            };
+        } else if src == Square(File::A, home_rank) {
+            mask |= match old_board.active_player {
+                Color::White => 0b0100,
+                Color::Black => 0b0001,
+            };
+        }
+    }
+    mask
+}
+
+fn is_double_pawn_push(board: &Board, src: Square, dest: Square) -> bool {
+    if board.get_piece_at(src).unwrap().0 != PieceType::Pawn {
+        return false;
+    }
+    let (home_rank, hop_rank) = match board.active_player {
+        Color::White => (Rank::_2, Rank::_4),
+        Color::Black => (Rank::_7, Rank::_5),
+    };
+    return src.1 == home_rank && dest.1 == hop_rank;
+}
+
+fn get_normal_legal_move_from_pseudolegal(
+    board: &Board,
+    src: Square,
+    dest: Square,
+) -> Option<LegalMove> {
+    let src_piece = match board.get_piece_at(src) {
+        Some(piece) => piece,
+        None => return None, // No piece at source
+    };
+
+    if src_piece.1 != board.active_player {
+        return None; // tried to move opponent's piece
+    }
+
+    if check_move_blocked(src_piece.0, src, dest, board).is_err() {
+        return None;
+    }
+
+    // carry out move
+    // TODO: possible perf optimization - make board mutable and undo to avoid cloning
+    let mut new_board = board.clone();
+    new_board.set_piece_at(dest, src_piece);
+    new_board.clear_square(src);
+
+    let en_passant = try_get_en_passant_capture(&mut new_board, src);
+
+    // check if king in check
+    if is_king_in_check(&new_board) {
+        return None;
+    }
+
+    if en_passant.is_some() {
+        return en_passant;
+    }
+
+    // double pawn push
+
+    if is_double_pawn_push(&board, src, dest) {
+        return Some(LegalMove::DoublePawnPush { file: src.0 });
+    }
+
+    let castling_mask = get_castling_mask(board, src, dest);
+
+    Some(LegalMove::Normal {
+        src,
+        dest,
+        castle_mask: castling_mask,
+    })
+}
+
+fn get_promotion_legal_move_from_pseudolegal(
+    board: &Board,
+    src: Square,
+    dest: Square,
+    promotion: PromotionPieceType,
+) -> Option<LegalMove> {
+    let castlemask = match get_normal_legal_move_from_pseudolegal(board, src, dest) {
+        Some(LegalMove::Normal { castle_mask, .. }) => castle_mask,
+        _ => return None, // move is not legal
+    };
+    Some(LegalMove::Promotion {
+        src,
+        dest,
+        castle_mask: castlemask,
+        promotion,
+    })
+}
+
+// TODO clean up
+fn can_castle_kingside(board: &Board) -> bool {
+    // must have castling rights
+    if !board.can_castle_kingside(board.active_player) {
+        return false;
+    }
+    // must not be in check
+    if is_king_in_check(board) {
+        return false;
+    }
+    let home_rank = match board.active_player {
+        Color::White => Rank::_1,
+        Color::Black => Rank::_8,
+    };
+    let (king_pos, f_square, g_square, rook_pos) = (
+        Square(File::E, home_rank),
+        Square(File::F, home_rank),
+        Square(File::G, home_rank),
+        Square(File::H, home_rank),
+    );
+    let mut new_board = board.clone();
+    new_board.clear_square(king_pos);
+    // F square must be empty and not under attack
+    if let Some(_) = board.get_piece_at(f_square) {
+        return false;
+    }
+    new_board.set_piece_at(f_square, Piece(PieceType::King, board.active_player));
+    if is_king_in_check(&new_board) {
+        return false;
+    }
+    new_board.clear_square(f_square);
+    // G square must be empty and not under attack
+    if let Some(_) = board.get_piece_at(g_square) {
+        return false; // TODO avoid cloning board, use square attack helper function instead
+    }
+    new_board.set_piece_at(g_square, Piece(PieceType::King, board.active_player));
+    if is_king_in_check(&new_board) {
+        return false;
+    }
+    return true;
+}
+
+fn can_castle_queenside(board: &Board) -> bool {
+    // must have castling rights
+    if !board.can_castle_queenside(board.active_player) {
+        return false;
+    }
+    // must not be in check
+    if is_king_in_check(board) {
+        return false;
+    }
+    let home_rank = match board.active_player {
+        Color::White => Rank::_1,
+        Color::Black => Rank::_8,
+    };
+    let (king_pos, d_square, c_square, b_square) = (
+        Square(File::E, home_rank),
+        Square(File::D, home_rank),
+        Square(File::C, home_rank),
+        Square(File::B, home_rank),
+    );
+    let mut new_board = board.clone();
+    new_board.clear_square(king_pos);
+    // D square must be empty and not under attack
+    if let Some(_) = board.get_piece_at(d_square) {
+        return false;
+    }
+    new_board.set_piece_at(d_square, Piece(PieceType::King, board.active_player));
+    if is_king_in_check(&new_board) {
+        return false;
+    }
+    new_board.clear_square(d_square);
+    // C square must be empty and not under attack
+    if let Some(_) = board.get_piece_at(c_square) {
+        return false;
+    }
+    new_board.set_piece_at(c_square, Piece(PieceType::King, board.active_player));
+    if is_king_in_check(&new_board) {
+        return false;
+    }
+    if let Some(_) = board.get_piece_at(b_square) {
+        return false;
+    }
+    true
+}
+
+pub fn get_legal_move_from_move(
+    board: &Board,
+    src: Square,
+    dest: Square,
+    promotion: Option<PromotionPieceType>,
+) -> Option<LegalMove> {
+    // apply psuedolegal checks, then run function below
+    unimplemented!()
+}
+
+pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Option<LegalMove> {
+    match move_ {
+        Move::Normal { src, dest } => get_normal_legal_move_from_pseudolegal(board, *src, *dest),
+        Move::CastleKingside { .. } => {
+            if can_castle_kingside(board) {
+                Some(LegalMove::CastleKingside)
+            } else {
+                None
+            }
+        }
+        Move::CastleQueenside { .. } => {
+            if can_castle_queenside(board) {
+                Some(LegalMove::CastleQueenside)
+            } else {
+                None
+            }
+        }
+        Move::Promotion {
+            src,
+            dest,
+            promotion,
+        } => get_promotion_legal_move_from_pseudolegal(board, *src, *dest, *promotion),
+    }
+}
+
+pub fn apply_legal_move(board: &Board, move_: &LegalMove) -> Board {
+    let mut new_board = board.clone();
+    new_board.en_passant_target = None;
+    match move_ {
+        LegalMove::Normal {
+            src,
+            dest,
+            castle_mask,
+        } => {
+            let piece = new_board.get_piece_at(*src).unwrap();
+            new_board.set_piece_at(*dest, piece);
+            new_board.clear_square(*src);
+            new_board.castling_rights ^= castle_mask;
+        }
+        LegalMove::Promotion {
+            src,
+            dest,
+            castle_mask,
+            promotion,
+        } => {
+            let piece = match promotion {
+                PromotionPieceType::Queen => PieceType::Queen,
+                PromotionPieceType::Rook => PieceType::Rook,
+                PromotionPieceType::Bishop => PieceType::Bishop,
+                PromotionPieceType::Knight => PieceType::Knight,
+            };
+            new_board.set_piece_at(*dest, Piece(piece, new_board.active_player));
+            new_board.clear_square(*src);
+            new_board.castling_rights ^= castle_mask;
+        }
+        LegalMove::CastleKingside => {
+            let home_rank = match new_board.active_player {
+                Color::White => Rank::_1,
+                Color::Black => Rank::_8,
+            };
+            let (king_pos, f_square, g_square, rook_pos) = (
+                Square(File::E, home_rank),
+                Square(File::F, home_rank),
+                Square(File::G, home_rank),
+                Square(File::H, home_rank),
+            );
+            new_board.clear_square(king_pos);
+            new_board.set_piece_at(g_square, Piece(PieceType::King, new_board.active_player));
+            new_board.clear_square(rook_pos);
+            new_board.set_piece_at(f_square, Piece(PieceType::Rook, new_board.active_player));
+            new_board.castling_rights &= match new_board.active_player {
+                Color::White => 0b0011,
+                Color::Black => 0b1100,
+            };
+        }
+        LegalMove::CastleQueenside => {
+            let home_rank = match new_board.active_player {
+                Color::White => Rank::_1,
+                Color::Black => Rank::_8,
+            };
+            let (king_pos, d_square, c_square, rook_pos) = (
+                Square(File::E, home_rank),
+                Square(File::D, home_rank),
+                Square(File::C, home_rank),
+                Square(File::A, home_rank),
+            );
+            new_board.clear_square(king_pos);
+            new_board.set_piece_at(c_square, Piece(PieceType::King, new_board.active_player));
+            new_board.clear_square(rook_pos);
+            new_board.set_piece_at(d_square, Piece(PieceType::Rook, new_board.active_player));
+            new_board.castling_rights &= match new_board.active_player {
+                Color::White => 0b0011,
+                Color::Black => 0b1100,
+            };
+        }
+        LegalMove::DoublePawnPush { file: f } => {
+            let (src_rank, target_rank, dst_rank) = match new_board.active_player {
+                Color::White => (Rank::_2, Rank::_3, Rank::_4),
+                Color::Black => (Rank::_7, Rank::_6, Rank::_5),
+            };
+            new_board.set_piece_at(
+                Square(*f, dst_rank),
+                Piece(PieceType::Pawn, new_board.active_player),
+            );
+            new_board.clear_square(Square(*f, src_rank));
+            new_board.en_passant_target = Some(Square(*f, target_rank));
+        }
+        LegalMove::EnPassantCapture { src } => {
+            let en_passant_target = match new_board.en_passant_target {
+                Some(pos) => pos,
+                None => unreachable!("No en passant target"),
+            };
+            new_board.set_piece_at(en_passant_target, new_board.get_piece_at(*src).unwrap());
+            new_board.clear_square(*src);
+            let captured_pawn_pos = match new_board.active_player {
+                Color::White => Square(en_passant_target.0, Rank::_5),
+                Color::Black => Square(en_passant_target.0, Rank::_4),
+            };
+            new_board.clear_square(captured_pawn_pos);
+        }
+    }
+    new_board.active_player = board.active_player.opponent();
+    new_board
 }
 
 pub fn is_move_legal(board: &Board, move_: &Move) -> bool {
