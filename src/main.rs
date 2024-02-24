@@ -3,7 +3,8 @@ use otus::{
         self,
         model_utils::Opponent,
         models::{Color, GameState},
-        move_checking, Board,
+        move_checking::{self, apply_legal_move},
+        Board,
     },
     players::{ChessPlayer, HumanPlayer, Otus},
     search::minimax::search_minimax,
@@ -20,7 +21,7 @@ fn main() {
             }
             "perftest" => {
                 let board = Board::default();
-                println!("{}", search_minimax(&board, 5));
+                println!("{}", search_minimax(&board, 5).to_move(&board));
                 return;
             }
             _ => println!("Invalid argument"),
@@ -47,16 +48,10 @@ pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) 
             Color::White => white_player.make_move(&board),
             Color::Black => black_player.make_move(&board),
         };
-        match move_checking::apply_move(&board, &m) {
-            Ok(new_board) => {
-                board = new_board;
-                match board.get_gamestate() {
-                    GameState::InProgress => (),
-                    gs => return gs,
-                }
-            }
-            // Illegal move, game is forfeit
-            Err(_) => return GameState::Mated(board.active_player),
+        board = apply_legal_move(&board, &m);
+        match board.get_gamestate() {
+            GameState::InProgress => (),
+            gs => return gs,
         }
     }
 }

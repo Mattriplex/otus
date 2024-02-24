@@ -71,9 +71,12 @@ pub enum Move {
 
 /* This move is legal in the context of a specific board. Care must be taken to not apply a LegalMove to the wrong board.
 This way, we can skip the legality checks when applying the move.
-The model is designed in a way to allow all moves to be reversed.
+The LegalMove is designed in a way to allow all moves to be reversed, and to require minimal computation to apply.
 TODO: model captures for 50 move rule
+
+Users should NEVER construct a Legalmove directly. Instead, use the Board's get_legal_moves function to get a list of legal moves.
 */
+#[derive(Debug, Clone, PartialEq)]
 pub enum LegalMove {
     Normal {
         src: Square,

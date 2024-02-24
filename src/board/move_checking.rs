@@ -189,8 +189,8 @@ fn update_castling_rights(new_board: &mut Board, src: Square, dest: Square) {
     }
     // moving the king removes castling rights
     let (can_kingside_castle, can_queenside_castle) = (
-        new_board.can_castle_kingside(active_player),
-        new_board.can_castle_queenside(active_player),
+        new_board.has_kingside_castling_rights(active_player),
+        new_board.has_queenside_castling_rights(active_player),
     );
     if (can_kingside_castle || can_queenside_castle) && src.clone() == Square(File::E, home_rank) {
         new_board.revoke_kingside_castling(active_player);
@@ -301,7 +301,7 @@ fn check_and_handle_normal_move(board: &Board, src: Square, dest: Square) -> Res
 
 fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
     // must have castling rights
-    if !board.can_castle_kingside(board.active_player) {
+    if !board.has_kingside_castling_rights(board.active_player) {
         return Err("No castling rights".to_string());
     }
     // must not be in check
@@ -348,7 +348,7 @@ fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
 
 fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
     // must have castling rights
-    if !board.can_castle_queenside(board.active_player) {
+    if !board.has_queenside_castling_rights(board.active_player) {
         return Err("No castling rights".to_string());
     }
     // must not be in check
@@ -449,22 +449,22 @@ fn get_castling_mask(old_board: &Board, src: Square, dest: Square) -> u8 {
         Color::Black => (Rank::_8, Rank::_1),
     };
     if dest == Square(File::A, opp_home_rank)
-        && old_board.can_castle_queenside(old_board.active_player.opponent())
+        && old_board.has_queenside_castling_rights(old_board.active_player.opponent())
     {
         mask |= match old_board.active_player {
             Color::White => 0b0001,
             Color::Black => 0b0100,
         };
     } else if dest == Square(File::H, opp_home_rank)
-        && old_board.can_castle_kingside(old_board.active_player.opponent())
+        && old_board.has_kingside_castling_rights(old_board.active_player.opponent())
     {
         mask |= match old_board.active_player {
             Color::White => 0b0010,
             Color::Black => 0b1000,
         };
     }
-    if old_board.can_castle_kingside(old_board.active_player)
-        || old_board.can_castle_queenside(old_board.active_player)
+    if old_board.has_kingside_castling_rights(old_board.active_player)
+        || old_board.has_queenside_castling_rights(old_board.active_player)
     {
         // does the move move the king?
         if src == Square(File::E, home_rank) {
@@ -569,9 +569,9 @@ fn get_promotion_legal_move_from_pseudolegal(
 }
 
 // TODO clean up
-fn can_castle_kingside(board: &Board) -> bool {
+pub fn can_castle_kingside(board: &Board) -> bool {
     // must have castling rights
-    if !board.can_castle_kingside(board.active_player) {
+    if !board.has_kingside_castling_rights(board.active_player) {
         return false;
     }
     // must not be in check
@@ -610,9 +610,9 @@ fn can_castle_kingside(board: &Board) -> bool {
     return true;
 }
 
-fn can_castle_queenside(board: &Board) -> bool {
+pub fn can_castle_queenside(board: &Board) -> bool {
     // must have castling rights
-    if !board.can_castle_queenside(board.active_player) {
+    if !board.has_queenside_castling_rights(board.active_player) {
         return false;
     }
     // must not be in check
@@ -654,12 +654,7 @@ fn can_castle_queenside(board: &Board) -> bool {
     true
 }
 
-pub fn get_legal_move_from_move(
-    board: &Board,
-    src: Square,
-    dest: Square,
-    promotion: Option<PromotionPieceType>,
-) -> Option<LegalMove> {
+pub fn get_legal_move_from_move(board: &Board, move_: &Move) -> Option<LegalMove> {
     // apply psuedolegal checks, then run function below
     unimplemented!()
 }

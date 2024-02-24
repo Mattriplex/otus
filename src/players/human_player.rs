@@ -1,18 +1,18 @@
 use crate::board::{
-    models::{Move, PromotionPieceType, Square},
-    move_checking::{is_move_legal, is_promotion_move},
+    models::{LegalMove, Move, PromotionPieceType, Square},
+    move_checking::{get_legal_move_from_move, is_move_legal, is_promotion_move},
     Board,
 };
 
 use super::{ChessPlayer, HumanPlayer};
 
 impl HumanPlayer {
-    fn try_get_move_input(&self, board: &Board) -> Result<Move, String> {
+    fn try_get_move_input(&self, board: &Board) -> Result<LegalMove, String> {
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).unwrap();
-        match input.trim() {
-            "0-0" => Ok(Move::CastleKingside),
-            "0-0-0" => Ok(Move::CastleQueenside),
+        let candidate = match input.trim() {
+            "0-0" => Move::CastleKingside,
+            "0-0-0" => Move::CastleQueenside,
             s => {
                 let parts: Vec<&str> = s.split_whitespace().collect();
                 if parts.len() != 2 {
@@ -43,18 +43,19 @@ impl HumanPlayer {
                         dest: to,
                     };
                 }
-                if is_move_legal(board, &move_) {
-                    Ok(move_)
-                } else {
-                    Err("Illegal move".to_string())
-                }
+                move_
             }
+        };
+        if let Some(legal_move) = get_legal_move_from_move(board, &candidate) {
+            Ok(legal_move)
+        } else {
+            Err("Illegal move".to_string())
         }
     }
 }
 
 impl ChessPlayer for HumanPlayer {
-    fn make_move(&self, board: &Board) -> Move {
+    fn make_move(&self, board: &Board) -> LegalMove {
         println!("{}", board);
         println!("You are {}. Enter your move: ", board.active_player);
         loop {

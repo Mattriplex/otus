@@ -39,7 +39,7 @@ fn process_position_command(arguments: Vec<&str>, board: &mut Board) {
 pub fn process_go_command(arguments: Vec<&str>, player: &impl ChessPlayer, board: &mut Board) {
     // TODO parse time control etc
     let move_ = player.make_move(board);
-    println!("bestmove {}", move_); // TODO: Display may not be UCI-compliant
+    println!("bestmove {}", move_.to_move(board)); // TODO: Display may not be UCI-compliant
 }
 
 pub fn process_command(command: &str, board: &mut Board, player: &impl ChessPlayer) {

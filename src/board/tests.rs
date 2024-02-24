@@ -1,6 +1,6 @@
 use crate::board::*;
 
-use self::move_checking::apply_move;
+use self::move_checking::{apply_legal_move, apply_move};
 
 #[test]
 fn test_fen_default_board() {
@@ -86,10 +86,10 @@ fn test_fen_default_board() {
 
     assert_eq!(board.active_player, White);
 
-    assert!(board.can_castle_kingside(White));
-    assert!(board.can_castle_queenside(White));
-    assert!(board.can_castle_kingside(Black));
-    assert!(board.can_castle_queenside(Black));
+    assert!(board.has_kingside_castling_rights(White));
+    assert!(board.has_queenside_castling_rights(White));
+    assert!(board.has_kingside_castling_rights(Black));
+    assert!(board.has_queenside_castling_rights(Black));
 }
 
 #[test]
@@ -176,10 +176,10 @@ fn test_fen_board() {
 
     assert_eq!(board.active_player, Black);
 
-    assert!(!board.can_castle_kingside(White));
-    assert!(!board.can_castle_queenside(White));
-    assert!(!board.can_castle_kingside(Black));
-    assert!(!board.can_castle_queenside(Black));
+    assert!(!board.has_kingside_castling_rights(White));
+    assert!(!board.has_queenside_castling_rights(White));
+    assert!(!board.has_kingside_castling_rights(Black));
+    assert!(!board.has_queenside_castling_rights(Black));
 }
 
 // TODO short game
@@ -194,7 +194,7 @@ fn perft(board: &Board, depth: u8) -> u64 {
 
     let mut count = 0;
     for mv in board.get_legal_moves() {
-        let new_board = apply_move(&board, &mv).unwrap();
+        let new_board = apply_legal_move(&board, &mv);
         let new_positions = perft(&new_board, depth - 1);
         count += new_positions;
         //if depth > 2 { println!("{}: {}", mv, new_positions); }

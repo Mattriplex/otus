@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 use crate::board::models::{Color, Piece, PromotionPieceType};
 
 use super::{
-    models::{File, Move, PieceType, Rank, Square},
+    models::{File, LegalMove, Move, PieceType, Rank, Square},
     Board,
 };
 
@@ -232,6 +232,43 @@ impl Move {
                 src: from,
                 dest: to,
             })
+        }
+    }
+}
+
+impl LegalMove {
+    pub fn to_move(&self, board: &Board) -> Move {
+        match self {
+            LegalMove::Normal { src, dest, .. } => Move::Normal {
+                src: *src,
+                dest: *dest,
+            },
+            LegalMove::CastleKingside => Move::CastleKingside,
+            LegalMove::CastleQueenside => Move::CastleQueenside,
+            LegalMove::Promotion {
+                src,
+                dest,
+                promotion,
+                ..
+            } => Move::Promotion {
+                src: *src,
+                dest: *dest,
+                promotion: *promotion,
+            },
+            LegalMove::EnPassantCapture { src } => Move::Normal {
+                src: *src,
+                dest: board.en_passant_target.expect("En passant target empty"),
+            },
+            LegalMove::DoublePawnPush { file } => match board.active_player {
+                Color::White => Move::Normal {
+                    src: Square(*file, Rank::_2),
+                    dest: Square(*file, Rank::_4),
+                },
+                Color::Black => Move::Normal {
+                    src: Square(*file, Rank::_7),
+                    dest: Square(*file, Rank::_5),
+                },
+            },
         }
     }
 }

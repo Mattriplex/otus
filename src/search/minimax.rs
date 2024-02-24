@@ -1,8 +1,8 @@
 use rand::Rng;
 
 use crate::board::{
-    models::{GameState, Move},
-    move_checking::apply_move,
+    models::{GameState, LegalMove, Move},
+    move_checking::{apply_legal_move, apply_move},
     Board,
 };
 
@@ -13,12 +13,12 @@ fn get_noise() -> f32 {
     rng.gen_range(-0.1..0.1)
 }
 
-pub fn search_minimax(board: &Board, depth: u32) -> Move {
+pub fn search_minimax(board: &Board, depth: u32) -> LegalMove {
     let moves = board.get_legal_moves();
     let mut best_move = moves[0].clone();
     let mut best_score = f32::MIN;
     for move_ in moves {
-        let new_board = apply_move(board, &move_).unwrap();
+        let new_board = apply_legal_move(board, &move_);
         let score = -nega_max(&new_board, depth - 1) + get_noise(); // add noise to shuffle moves of equal value
         if score > best_score {
             best_score = score;
@@ -42,7 +42,7 @@ fn nega_max(board: &Board, depth: u32) -> f32 {
     let moves = board.get_legal_moves();
     let mut best_score = f32::MIN; // if no legal moves, return worst possible score TODO fix this for stalemate
     for move_ in moves {
-        let new_board = apply_move(board, &move_).unwrap();
+        let new_board = apply_legal_move(board, &move_);
         let score = -nega_max(&new_board, depth - 1);
         if score > best_score {
             best_score = score;

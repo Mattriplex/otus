@@ -4,8 +4,11 @@ use crate::board::models::Piece;
 
 use self::{
     board_utils::PlayerPieceIter,
-    models::{Color, File, GameState, Move, PieceType, PromotionPieceType, Rank, Square},
+    models::{
+        Color, File, GameState, LegalMove, Move, PieceType, PromotionPieceType, Rank, Square,
+    },
     move_checking::{
+        can_castle_kingside, can_castle_queenside, get_legal_move_from_pseudolegal_move,
         is_king_in_check, is_move_legal,
         square_utils::{pos_plus, DirIter, KnightHopIter, RayIter},
     },
@@ -221,7 +224,7 @@ impl Board {
         fen
     }
 
-    fn can_castle_kingside(&self, color: Color) -> bool {
+    fn has_kingside_castling_rights(&self, color: Color) -> bool {
         self.castling_rights
             & match color {
                 Color::White => 0b1000,
@@ -230,7 +233,7 @@ impl Board {
             != 0
     }
 
-    fn can_castle_queenside(&self, color: Color) -> bool {
+    fn has_queenside_castling_rights(&self, color: Color) -> bool {
         self.castling_rights
             & match color {
                 Color::White => 0b0100,
@@ -264,8 +267,8 @@ impl Board {
         Ok(())
     }
 
-    fn try_add_promotion_moves(&self, src: Square, dest: Square, moves: &mut Vec<Move>) {
-        if is_move_legal(
+    fn try_add_promotion_moves(&self, src: Square, dest: Square, moves: &mut Vec<LegalMove>) {
+        if let Some(LegalMove::Normal { castle_mask, .. }) = get_legal_move_from_pseudolegal_move(
             self,
             &Move::Promotion {
                 src,
@@ -279,16 +282,17 @@ impl Board {
                 PromotionPieceType::Bishop,
                 PromotionPieceType::Knight,
             ] {
-                moves.push(Move::Promotion {
+                moves.push(LegalMove::Promotion {
                     src,
                     dest,
                     promotion: promotion_piece,
+                    castle_mask: castle_mask,
                 });
             }
         }
     }
 
-    pub fn get_legal_moves(&self) -> Vec<Move> {
+    pub fn get_legal_moves(&self) -> Vec<LegalMove> {
         let mut legal_moves = Vec::new();
         let (forward, opp_home_rank) = match self.active_player {
             Color::White => (1, Rank::_7),
@@ -297,35 +301,35 @@ impl Board {
         for (piece, src) in PlayerPieceIter::new(self, self.active_player) {
             let mk_ray = move |dir: (i8, i8)| RayIter::new(src, dir);
             match piece {
-                PieceType::Queen => DirIter::all().flat_map(mk_ray).for_each(|dest| {
-                    if is_move_legal(self, &Move::Normal { src, dest }) {
-                        legal_moves.push(Move::Normal { src, dest });
-                    }
-                }),
-                PieceType::Rook => DirIter::rook().flat_map(mk_ray).for_each(|dest| {
-                    if is_move_legal(self, &Move::Normal { src, dest }) {
-                        legal_moves.push(Move::Normal { src, dest });
-                    }
-                }),
-                PieceType::Bishop => DirIter::bishop().flat_map(mk_ray).for_each(|dest| {
-                    if is_move_legal(self, &Move::Normal { src, dest }) {
-                        legal_moves.push(Move::Normal { src, dest });
-                    }
-                }),
-                PieceType::Knight => KnightHopIter::new(src).for_each(|dest| {
-                    if is_move_legal(self, &Move::Normal { src, dest }) {
-                        legal_moves.push(Move::Normal { src, dest });
-                    }
-                }),
-                PieceType::King => {
-                    DirIter::all()
-                        .flat_map(|dir| pos_plus(src, dir))
-                        .for_each(|dest| {
-                            if is_move_legal(self, &Move::Normal { src, dest }) {
-                                legal_moves.push(Move::Normal { src, dest });
-                            }
-                        })
-                }
+                PieceType::Queen => DirIter::all()
+                    .flat_map(mk_ray)
+                    .filter_map(|dest| {
+                        get_legal_move_from_pseudolegal_move(self, &Move::Normal { src, dest })
+                    })
+                    .for_each(|m| legal_moves.push(m)),
+                PieceType::Rook => DirIter::rook()
+                    .flat_map(mk_ray)
+                    .filter_map(|dest| {
+                        get_legal_move_from_pseudolegal_move(self, &Move::Normal { src, dest })
+                    })
+                    .for_each(|m| legal_moves.push(m)),
+                PieceType::Bishop => DirIter::bishop()
+                    .flat_map(mk_ray)
+                    .filter_map(|dest| {
+                        get_legal_move_from_pseudolegal_move(self, &Move::Normal { src, dest })
+                    })
+                    .for_each(|m| legal_moves.push(m)),
+                PieceType::Knight => KnightHopIter::new(src)
+                    .filter_map(|dest| {
+                        get_legal_move_from_pseudolegal_move(self, &Move::Normal { src, dest })
+                    })
+                    .for_each(|m| legal_moves.push(m)),
+                PieceType::King => DirIter::all()
+                    .flat_map(|dir| pos_plus(src, dir))
+                    .filter_map(|dest| {
+                        get_legal_move_from_pseudolegal_move(self, &Move::Normal { src, dest })
+                    })
+                    .for_each(|m| legal_moves.push(m)),
                 PieceType::Pawn => {
                     if src.1 == opp_home_rank {
                         [(0, forward), (-1, forward), (1, forward)]
@@ -339,20 +343,22 @@ impl Board {
                         [(0, forward), (-1, forward), (1, forward), (0, 2 * forward)]
                             .iter()
                             .filter_map(move |step| pos_plus(src, *step))
-                            .for_each(|dest| {
-                                if is_move_legal(self, &Move::Normal { src, dest }) {
-                                    legal_moves.push(Move::Normal { src, dest });
-                                }
-                            });
+                            .filter_map(|dest| {
+                                get_legal_move_from_pseudolegal_move(
+                                    self,
+                                    &Move::Normal { src, dest },
+                                )
+                            })
+                            .for_each(|m| legal_moves.push(m));
                     }
                 }
             }
         }
-        if is_move_legal(self, &Move::CastleKingside {}) {
-            legal_moves.push(Move::CastleKingside {});
+        if can_castle_kingside(&self) {
+            legal_moves.push(LegalMove::CastleKingside {});
         }
-        if is_move_legal(self, &Move::CastleQueenside {}) {
-            legal_moves.push(Move::CastleQueenside {});
+        if can_castle_queenside(self) {
+            legal_moves.push(LegalMove::CastleQueenside {});
         }
         legal_moves
     }

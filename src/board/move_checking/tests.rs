@@ -518,7 +518,8 @@ fn test_king_move_voids_white_castling_rights() {
     let result = apply_move(&board, &move_).unwrap();
 
     assert!(
-        !(result.can_castle_kingside(Color::White) || result.can_castle_queenside(Color::White))
+        !(result.has_kingside_castling_rights(Color::White)
+            || result.has_queenside_castling_rights(Color::White))
     );
 }
 
@@ -533,7 +534,8 @@ fn test_king_move_voids_black_castling_rights() {
     let result = apply_move(&board, &move_).unwrap();
 
     assert!(
-        !(result.can_castle_kingside(Color::Black) || result.can_castle_queenside(Color::Black))
+        !(result.has_kingside_castling_rights(Color::Black)
+            || result.has_queenside_castling_rights(Color::Black))
     );
 }
 
@@ -547,8 +549,8 @@ fn test_rook_move_voids_castling_rights() {
 
     let result = apply_move(&board, &move_).unwrap();
 
-    assert!(result.can_castle_queenside(Color::White));
-    assert!(!result.can_castle_kingside(Color::White));
+    assert!(result.has_queenside_castling_rights(Color::White));
+    assert!(!result.has_kingside_castling_rights(Color::White));
 }
 
 #[test]
@@ -561,8 +563,8 @@ fn test_rook_capture_voids_castling_rights() {
 
     let result = apply_move(&board, &move_).unwrap();
 
-    assert!(!result.can_castle_queenside(Color::White));
-    assert!(result.can_castle_kingside(Color::White));
+    assert!(!result.has_queenside_castling_rights(Color::White));
+    assert!(result.has_kingside_castling_rights(Color::White));
 }
 
 // TODO pawn check
