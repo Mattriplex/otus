@@ -36,7 +36,7 @@ fn check_move_blocked(
     if piece == PieceType::Pawn {
         // If moving sideways, must capture a piece (special case: en passant)
         if src.0 != dest.0 {
-            if board.get_piece_at(dest).is_none() && board.en_passant_target.is_none() {
+            if board.get_piece_at(dest).is_none() && board.en_passant_target != Some(dest) {
                 return Err("Pawn cannot move sideways without capturing".to_string());
             }
         }

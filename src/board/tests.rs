@@ -223,6 +223,7 @@ fn test_perf_kiwipete() {
 fn test_perf_3() {
     let board = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
 
+    assert_eq!(perft(&board, 1), 14);
     assert_eq!(perft(&board, 2), 191);
     assert_eq!(perft(&board, 3), 2812);
     assert_eq!(perft(&board, 4), 43238);
@@ -261,4 +262,11 @@ fn test_fen_output() {
         fen,
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     );
+}
+
+#[test]
+fn test_illegal_pawn_move() {
+    let board = Board::from_fen("8/2p5/3p4/KP5r/1R2Pp1k/8/6P1/8 b - e3 0 1").unwrap();
+
+    assert!(!is_move_legal(&board, &Move::from_uci_string(&board, "c7b6").unwrap()));
 }
