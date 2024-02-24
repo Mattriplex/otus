@@ -1,6 +1,6 @@
 use crate::{
     board::{models::Move, move_checking::apply_move, Board},
-    players::ChessPlayer,
+    players::ChessPlayer, search::perft,
 };
 
 fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
@@ -62,6 +62,12 @@ pub fn process_command(command: &str, board: &mut Board, player: &impl ChessPlay
         }
         "quit" => {
             std::process::exit(0);
+        }
+        "perft" => {
+            if tokens.len() > 1 {
+                let depth = tokens[1].parse().expect("Invalid depth");
+                perft::perft(board, depth);
+            }
         }
         _ => {
             // stop, ponderhit, register, setoption, debug, ucinewgame
