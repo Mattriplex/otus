@@ -294,9 +294,9 @@ impl Board {
 
     pub fn get_legal_moves(&self) -> Vec<LegalMove> {
         let mut legal_moves = Vec::new();
-        let (forward, opp_home_rank) = match self.active_player {
-            Color::White => (1, Rank::_7),
-            Color::Black => (-1, Rank::_2),
+        let (forward, home_rank, opp_home_rank) = match self.active_player {
+            Color::White => (1, Rank::_2, Rank::_7),
+            Color::Black => (-1, Rank::_7, Rank::_2),
         };
         for (piece, src) in PlayerPieceIter::new(self, self.active_player) {
             let mk_ray = move |dir: (i8, i8)| RayIter::new(src, dir);
@@ -338,18 +338,20 @@ impl Board {
                             .for_each(|dest| {
                                 self.try_add_promotion_moves(src, dest, &mut legal_moves);
                             });
-                    } else {
-                        // TODO filter double pawn push
+                    } else if home_rank == src.1 {
+                        //include double pawn push
                         [(0, forward), (-1, forward), (1, forward), (0, 2 * forward)]
                             .iter()
                             .filter_map(move |step| pos_plus(src, *step))
-                            .filter_map(|dest| {
-                                get_legal_move_from_pseudolegal_move(
-                                    self,
-                                    &Move::Normal { src, dest },
-                                )
-                            })
+                            .filter_map(|dest| get_legal_move_from_pseudolegal_move(self, &Move::Normal { src, dest }))
                             .for_each(|m| legal_moves.push(m));
+                    } else {
+                        //exclude double pawn push
+                        [(0, forward), (-1, forward), (1, forward)]
+                            .iter()
+                            .filter_map(move |step| pos_plus(src, *step))
+                            .filter_map(|dest| get_legal_move_from_pseudolegal_move(self, &Move::Normal { src, dest }))
+                            .for_each(|m| legal_moves.push(m));                    
                     }
                 }
             }
