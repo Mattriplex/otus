@@ -218,6 +218,7 @@ fn is_king_move(src: Square, dest: Square) -> bool {
     x.abs() <= 1 && y.abs() <= 1
 }
 
+// Double pawn pushes are only pseudo legal if the pawn is on its starting rank
 fn is_pawn_move(src: Square, dest: Square, player: Color) -> bool {
     let (x, y) = pos_minus(dest, src);
     match player {

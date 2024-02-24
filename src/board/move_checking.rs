@@ -397,16 +397,10 @@ fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
     Ok(new_board)
 }
 
-// TODO: switch active player
 pub fn apply_move(board: &Board, move_: &Move) -> Result<Board, String> {
-    match move_ {
-        Move::Normal {
-            src: from,
-            dest: to,
-        } => check_and_handle_normal_move(board, *from, *to),
-        Move::CastleKingside { .. } => handle_kingside_castle(board),
-        Move::CastleQueenside { .. } => handle_queenside_castle(board),
-        Move::Promotion { .. } => handle_promotion_move(board, move_),
+    match get_legal_move_from_move(board, move_) {
+        Some(legal_move) => Ok(apply_legal_move(board, &legal_move)),
+        None => Err("Move is not legal".to_string()),
     }
 }
 
@@ -655,13 +649,22 @@ pub fn can_castle_queenside(board: &Board) -> bool {
 }
 
 pub fn get_legal_move_from_move(board: &Board, move_: &Move) -> Option<LegalMove> {
-    // apply psuedolegal checks, then run function below
-    unimplemented!()
-}
-
-pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Option<LegalMove> {
     match move_ {
-        Move::Normal { src, dest } => get_normal_legal_move_from_pseudolegal(board, *src, *dest),
+        Move::Normal { src, dest } => {
+            if is_promotion_move(board, *src, *dest) {
+                None // missing promotion piece
+            } else {
+                if let Some(Piece(src_piece, owner)) = board.get_piece_at(*src) {
+                    if is_move_pseudo_legal(*src, *dest, src_piece, owner) {
+                        get_normal_legal_move_from_pseudolegal(board, *src, *dest)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+        }
         Move::CastleKingside { .. } => {
             if can_castle_kingside(board) {
                 Some(LegalMove::CastleKingside)
@@ -681,6 +684,48 @@ pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Opti
             dest,
             promotion,
         } => get_promotion_legal_move_from_pseudolegal(board, *src, *dest, *promotion),
+    }
+}
+
+/*
+Assumes move is pseudo legal, i.e.
+1. a piece of the active player stands on src
+2. the movement pattern agrees with that piece. Double pawn pushes are only possible from active player's home rank
+*/
+pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Option<LegalMove> {
+    match move_ {
+        Move::Normal { src, dest } => {
+            if is_promotion_move(board, *src, *dest) {
+                None // missing promotion piece
+            } else {
+                get_normal_legal_move_from_pseudolegal(board, *src, *dest)
+            }
+        }
+        Move::CastleKingside { .. } => {
+            if can_castle_kingside(board) {
+                Some(LegalMove::CastleKingside)
+            } else {
+                None
+            }
+        }
+        Move::CastleQueenside { .. } => {
+            if can_castle_queenside(board) {
+                Some(LegalMove::CastleQueenside)
+            } else {
+                None
+            }
+        }
+        Move::Promotion {
+            src,
+            dest,
+            promotion,
+        } => {
+            if is_promotion_move(board, *src, *dest) {
+                get_promotion_legal_move_from_pseudolegal(board, *src, *dest, *promotion)
+            } else {
+                None
+            }
+        }
     }
 }
 
@@ -767,7 +812,7 @@ pub fn apply_legal_move(board: &Board, move_: &LegalMove) -> Board {
             new_board.en_passant_target = Some(Square(*f, target_rank));
         }
         LegalMove::EnPassantCapture { src } => {
-            let en_passant_target = match new_board.en_passant_target {
+            let en_passant_target = match board.en_passant_target {
                 Some(pos) => pos,
                 None => unreachable!("No en passant target"),
             };
