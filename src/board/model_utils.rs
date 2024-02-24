@@ -152,7 +152,7 @@ impl fmt::Display for Move {
                 src: from,
                 dest: to,
             } => write!(f, "{}{}", from, to),
-            Move::CastleKingside => write!(f, "0-0"),
+            Move::CastleKingside => write!(f, "0-0"), //TODO make uci compliant
             Move::CastleQueenside => write!(f, "0-0-0"),
             Move::Promotion {
                 src: from,

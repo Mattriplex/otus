@@ -268,7 +268,7 @@ impl Board {
     }
 
     fn try_add_promotion_moves(&self, src: Square, dest: Square, moves: &mut Vec<LegalMove>) {
-        if let Some(LegalMove::Normal { castle_mask, .. }) = get_legal_move_from_pseudolegal_move(
+        if let Some(LegalMove::Promotion { castle_mask, .. }) = get_legal_move_from_pseudolegal_move(
             self,
             &Move::Promotion {
                 src,
@@ -343,15 +343,25 @@ impl Board {
                         [(0, forward), (-1, forward), (1, forward), (0, 2 * forward)]
                             .iter()
                             .filter_map(move |step| pos_plus(src, *step))
-                            .filter_map(|dest| get_legal_move_from_pseudolegal_move(self, &Move::Normal { src, dest }))
+                            .filter_map(|dest| {
+                                get_legal_move_from_pseudolegal_move(
+                                    self,
+                                    &Move::Normal { src, dest },
+                                )
+                            })
                             .for_each(|m| legal_moves.push(m));
                     } else {
                         //exclude double pawn push
                         [(0, forward), (-1, forward), (1, forward)]
                             .iter()
                             .filter_map(move |step| pos_plus(src, *step))
-                            .filter_map(|dest| get_legal_move_from_pseudolegal_move(self, &Move::Normal { src, dest }))
-                            .for_each(|m| legal_moves.push(m));                    
+                            .filter_map(|dest| {
+                                get_legal_move_from_pseudolegal_move(
+                                    self,
+                                    &Move::Normal { src, dest },
+                                )
+                            })
+                            .for_each(|m| legal_moves.push(m));
                     }
                 }
             }

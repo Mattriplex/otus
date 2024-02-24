@@ -1,3 +1,5 @@
+use tests::move_checking::get_legal_move_from_move;
+
 use crate::board::*;
 
 use self::move_checking::{apply_legal_move, apply_move};
@@ -234,6 +236,8 @@ fn test_perf_4() {
     let board = Board::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1")
         .unwrap();
 
+    assert_eq!(perft(&board, 1), 6);
+    assert_eq!(perft(&board, 2), 264);
     assert_eq!(perft(&board, 3), 9467);
 }
 
@@ -268,5 +272,18 @@ fn test_fen_output() {
 fn test_illegal_pawn_move() {
     let board = Board::from_fen("8/2p5/3p4/KP5r/1R2Pp1k/8/6P1/8 b - e3 0 1").unwrap();
 
-    assert!(!is_move_legal(&board, &Move::from_uci_string(&board, "c7b6").unwrap()));
+    assert!(!is_move_legal(
+        &board,
+        &Move::from_uci_string(&board, "c7b6").unwrap()
+    ));
+}
+
+#[test]
+fn test_queen_promotion() {
+    let board = Board::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P1RPP/R2Q2K1 b kq - 1 1")
+        .unwrap();
+    let mv =
+        get_legal_move_from_move(&board, &Move::from_uci_string(&board, "b2a1q").unwrap()).unwrap();
+
+    assert!(board.get_legal_moves().contains(&mv));
 }

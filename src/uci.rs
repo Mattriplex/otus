@@ -1,6 +1,7 @@
 use crate::{
     board::{models::Move, move_checking::apply_move, Board},
-    players::ChessPlayer, search::perft,
+    players::ChessPlayer,
+    search::perft,
 };
 
 fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
