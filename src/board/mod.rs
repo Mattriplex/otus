@@ -52,10 +52,6 @@ impl Board {
         self.get_piece(pos.0, pos.1)
     }
 
-    fn set_piece(&mut self, file: File, rank: Rank, piece: Piece) {
-        self.squares[rank as usize][file as usize] = Some(piece);
-    }
-
     fn set_piece_at(&mut self, pos: Square, piece: Piece) {
         self.squares[pos.1 as usize][pos.0 as usize] = Some(piece);
     }
@@ -240,20 +236,6 @@ impl Board {
                 Color::Black => 0b0001,
             }
             != 0
-    }
-
-    fn revoke_kingside_castling(&mut self, color: Color) {
-        self.castling_rights &= match color {
-            Color::White => 0b0111,
-            Color::Black => 0b1101,
-        }
-    }
-
-    fn revoke_queenside_castling(&mut self, color: Color) {
-        self.castling_rights &= match color {
-            Color::White => 0b1011,
-            Color::Black => 0b1110,
-        }
     }
 
     fn fmt_rank(&self, f: &mut fmt::Formatter, rank: usize) -> fmt::Result {
