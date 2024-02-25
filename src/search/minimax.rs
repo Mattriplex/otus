@@ -1,10 +1,12 @@
+use std::sync::mpsc;
+
 use rand::Rng;
 
-use crate::board::{
+use crate::{board::{
     models::{GameState, LegalMove},
-    move_checking::{apply_legal_move},
+    move_checking::apply_legal_move,
     Board,
-};
+}, uci::WorkerMessage};
 
 use super::eval::get_material_eval;
 
@@ -26,6 +28,24 @@ pub fn search_minimax(board: &Board, depth: u32) -> LegalMove {
         }
     }
     best_move
+}
+
+pub fn search_minimax_threaded(board: &Board, depth: u32, rx: mpsc::Receiver<()>) {
+    let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
+    let mut best_move = moves[0].clone();
+    let mut best_score = f32::MIN;
+    for move_ in moves {
+        let new_board = apply_legal_move(&board, &move_);
+        let score = -nega_max(&new_board, depth - 1) + get_noise(); // add noise to shuffle moves of equal value
+        if score > best_score {
+            best_score = score;
+            best_move = move_;
+        }
+        if rx.try_recv().is_ok() {
+            break;
+        }
+    }
+    println!("bestmove {}", best_move.to_move(board))
 }
 
 fn nega_max(board: &Board, depth: u32) -> f32 {

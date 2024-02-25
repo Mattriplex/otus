@@ -1,4 +1,4 @@
-use crate::board::{models::LegalMove, Board};
+use crate::{board::{models::LegalMove, Board}, uci::WorkerMessage};
 
 pub mod human_player;
 pub mod otus;

@@ -6,8 +6,7 @@ use otus::{
         Board,
     },
     players::{ChessPlayer, HumanPlayer, Otus},
-    search::minimax::search_minimax,
-    uci::run_uci_engine,
+    search::minimax::search_minimax, uci::UciEngine,
 };
 
 fn main() {
@@ -24,7 +23,7 @@ fn main() {
             _ => println!("Invalid argument"),
         }
     } else {
-        run_uci_engine(&Otus);
+        UciEngine::new().run();
     }
 }
 

@@ -1,8 +1,22 @@
+use std::thread;
+
 use crate::{
-    board::{models::Move, move_checking::apply_move, Board},
+    board::{models::{LegalMove, Move}, move_checking::apply_move, Board},
     players::ChessPlayer,
-    search::perft,
+    search::{minimax::search_minimax_threaded, perft},
 };
+
+
+pub enum WorkerMessage {
+    BestMove(Move),
+    Info(String),
+    Stop,
+}
+
+pub struct UciEngine {
+    tx: std::sync::mpsc::Sender<()>,
+    position: Board,
+}
 
 fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
     let mut board = *initial_board;
@@ -13,80 +27,102 @@ fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
     board
 }
 
-fn process_position_command(arguments: Vec<&str>, board: &mut Board) {
-    if arguments.is_empty() {
-        return;
+impl UciEngine {
+
+    pub fn new() -> Self {
+        let (tx, _) = std::sync::mpsc::channel();
+        Self {
+            tx,
+            position: Board::default(),
+        }
     }
-    match arguments[0].to_lowercase().as_str() {
-        "startpos" => {
-            *board = Board::default();
-            if arguments.len() > 1 && arguments[1].to_lowercase() == "moves" {
-                *board = process_moves_list(board, arguments[2..].to_vec());
+
+    
+    fn process_position_command(&mut self, arguments: Vec<&str>) {
+        if arguments.is_empty() {
+            return;
+        }
+        match arguments[0].to_lowercase().as_str() {
+            "startpos" => {
+                self.position = Board::default();
+                if arguments.len() > 1 && arguments[1].to_lowercase() == "moves" {
+                    self.position = process_moves_list(&self.position, arguments[2..].to_vec());
+                }
+            }
+            "fen" => {
+                let fen = arguments[1..7].join(" ");
+                self.position = Board::from_fen(&fen).expect("Invalid FEN string");
+                if arguments.len() > 7 && arguments[7].to_lowercase() == "moves" {
+                    self.position = process_moves_list(&self.position, arguments[8..].to_vec());
+                }
+            }
+            _ => {
+                // ignore
             }
         }
-        "fen" => {
-            let fen = arguments[1..7].join(" ");
-            *board = Board::from_fen(&fen).expect("Invalid FEN string");
-            if arguments.len() > 7 && arguments[7].to_lowercase() == "moves" {
-                *board = process_moves_list(board, arguments[8..].to_vec());
+    }
+    
+    fn process_go_command(&mut self, _arguments: Vec<&str>) {
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.tx = tx;
+        // TODO parse time control etc
+        thread::scope(|s| {
+            s.spawn(|| {
+                search_minimax_threaded(&self.position, 4, rx)
+            });
+        });
+    }
+    
+    fn process_command(&mut self, command: &str) {
+        let tokens: Vec<&str> = command.split_whitespace().collect();
+        if tokens.is_empty() {
+            return;
+        }
+        match tokens[0].to_lowercase().as_str() {
+            "uci" => {
+                println!("id name Otus");
+                println!("id author Matthias Roshardt");
+                println!("uciok");
+            }
+            "isready" => {
+                println!("readyok");
+            }
+            "position" => self.process_position_command(tokens[1..].to_vec()),
+            "go" => {
+                self.process_go_command(tokens[1..].to_vec());
+            }
+            "quit" => {
+                std::process::exit(0);
+            }
+            "perft" => {
+                if tokens.len() > 1 {
+                    let depth = tokens[1].parse().expect("Invalid depth");
+                    perft::perft(&self.position, depth);
+                }
+            }
+            "stop" => {
+                let _ = self.tx.send(()); // TODO if response from worker is too slow, add intermediate channel to cache latest best move
+            }
+            _ => {
+                // stop, ponderhit, register, setoption, debug, ucinewgame
             }
         }
-        _ => {
-            // ignore
-        }
     }
-}
-
-pub fn process_go_command(_arguments: Vec<&str>, player: &impl ChessPlayer, board: &mut Board) {
-    // TODO parse time control etc
-    let move_ = player.make_move(board);
-    println!("bestmove {}", move_.to_move(board)); // TODO: Display may not be UCI-compliant
-}
-
-pub fn process_command(command: &str, board: &mut Board, player: &impl ChessPlayer) {
-    let tokens: Vec<&str> = command.split_whitespace().collect();
-    if tokens.is_empty() {
-        return;
-    }
-    match tokens[0].to_lowercase().as_str() {
-        "uci" => {
-            println!("id name Otus");
-            println!("id author Matthias Roshardt");
-            println!("uciok");
-        }
-        "isready" => {
-            println!("readyok");
-        }
-        "position" => process_position_command(tokens[1..].to_vec(), board),
-        "go" => {
-            process_go_command(tokens[1..].to_vec(), player, board);
-        }
-        "quit" => {
-            std::process::exit(0);
-        }
-        "perft" => {
-            if tokens.len() > 1 {
-                let depth = tokens[1].parse().expect("Invalid depth");
-                perft::perft(board, depth);
+    
+    pub fn run(&mut self) {
+        loop {
+            // commands are separated by a newline
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+            for command in input.split('\n') {
+                self.process_command(command);
             }
         }
-        _ => {
-            // stop, ponderhit, register, setoption, debug, ucinewgame
-        }
     }
+
 }
 
-pub fn run_uci_engine(player: &impl ChessPlayer) {
-    let mut board: Board = Board::default();
-    loop {
-        // commands are separated by a newline
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        for command in input.split('\n') {
-            process_command(command, &mut board, player);
-        }
-    }
-}
+
 
 /*
 Output commands:
