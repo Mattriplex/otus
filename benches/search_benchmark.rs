@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use otus::{board::Board, search::minimax::search_minimax};
+use otus::{board::Board, search::minimax::{search_alpha_beta, search_minimax}};
 
 pub fn minimax_benchmark(c: &mut Criterion) {
     let mut board = Board::default();
@@ -18,5 +18,10 @@ pub fn minimax_benchmark_big(c: &mut Criterion) {
 //baseline (after above optimizations) 207ms
 //remove duplicate legality check: 140ms
 
-criterion_group!(benches, minimax_benchmark, minimax_benchmark_big);
+pub fn alpha_beta_benchmark(c: &mut Criterion) {
+    let mut board = Board::default();
+    c.bench_function("alpha_beta", |b| b.iter(|| search_alpha_beta(&mut board, 4)));
+}
+
+criterion_group!(benches, minimax_benchmark, minimax_benchmark_big, alpha_beta_benchmark);
 criterion_main!(benches);

@@ -39,14 +39,12 @@ pub struct SlideIter {
 
 impl SlideIter {
     // iterator includes all positions between src and dest, excluding src and dest
+    // intended to be used for sliding piece moves
     pub fn new(src: Square, dest: Square) -> SlideIter {
         let step = (
             ((dest.0 as i8) - (src.0 as i8)).signum(),
             ((dest.1 as i8) - (src.1 as i8)).signum(),
         );
-        if !is_rook_move(src, dest) && !is_bishop_move(src, dest) {
-            panic!("SlideIter::new called with non-sliding move");
-        }
         let current = pos_plus(src, step).unwrap();
         SlideIter {
             current,
