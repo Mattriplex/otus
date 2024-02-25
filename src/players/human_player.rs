@@ -1,6 +1,6 @@
 use crate::board::{
     models::{LegalMove, Move, PromotionPieceType, Square},
-    move_checking::{get_legal_move_from_move, is_move_legal, is_promotion_move},
+    move_checking::{get_legal_move_from_move, is_promotion_move},
     Board,
 };
 
@@ -20,7 +20,6 @@ impl HumanPlayer {
                 }
                 let from = Square::from_string(parts[0]).unwrap();
                 let to = Square::from_string(parts[1]).unwrap();
-                let move_;
                 if is_promotion_move(board, from, to) {
                     println!("Enter promotion piece: ");
                     let mut input = String::new();
@@ -32,18 +31,17 @@ impl HumanPlayer {
                         "q" => PromotionPieceType::Queen,
                         _ => return Err("Invalid promotion piece".to_string()),
                     };
-                    move_ = Move::Promotion {
+                    Move::Promotion {
                         src: from,
                         dest: to,
                         promotion,
-                    };
+                    }
                 } else {
-                    move_ = Move::Normal {
+                    Move::Normal {
                         src: from,
                         dest: to,
-                    };
+                    }
                 }
-                move_
             }
         };
         if let Some(legal_move) = get_legal_move_from_move(board, &candidate) {

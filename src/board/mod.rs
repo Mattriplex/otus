@@ -194,7 +194,7 @@ impl Board {
             }
         }
         fen.push(' ');
-        fen.push_str(&match self.active_player {
+        fen.push_str(match self.active_player {
             Color::White => "w",
             Color::Black => "b",
         });
@@ -366,7 +366,7 @@ impl Board {
                 }
             }
         }
-        if can_castle_kingside(&self) {
+        if can_castle_kingside(self) {
             legal_moves.push(LegalMove::CastleKingside {});
         }
         if can_castle_queenside(self) {
@@ -437,7 +437,7 @@ impl Board {
         if is_move_legal(self, &Move::CastleQueenside {}) {
             return true;
         }
-        return false;
+        false
     }
 
     pub fn get_gamestate(&self) -> GameState {

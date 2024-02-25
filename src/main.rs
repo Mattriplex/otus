@@ -1,9 +1,8 @@
 use otus::{
     board::{
-        self,
         model_utils::Opponent,
         models::{Color, GameState},
-        move_checking::{self, apply_legal_move},
+        move_checking::apply_legal_move,
         Board,
     },
     players::{ChessPlayer, HumanPlayer, Otus},
@@ -17,12 +16,10 @@ fn main() {
         match args[1].as_str() {
             "debug" => {
                 run_test_game();
-                return;
             }
             "perftest" => {
                 let board = Board::default();
                 println!("{}", search_minimax(&board, 5).to_move(&board));
-                return;
             }
             _ => println!("Invalid argument"),
         }

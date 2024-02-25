@@ -16,6 +16,7 @@ pub fn minimax_benchmark_big(c: &mut Criterion) {
     c.bench_function("minimax_big", |b| b.iter(|| search_minimax(&mut board, 4)));
 }
 //baseline (after above optimizations) 207ms
+//remove duplicate legality check: 140ms
 
 criterion_group!(benches, minimax_benchmark, minimax_benchmark_big);
 criterion_main!(benches);

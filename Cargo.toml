@@ -15,3 +15,6 @@ rstest = "0.18.2"
 [[bench]]
 name = "search_benchmark"
 harness = false
+
+[profile.release]
+debug = 1

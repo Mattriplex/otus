@@ -5,7 +5,7 @@ use crate::{
 };
 
 fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
-    let mut board = initial_board.clone();
+    let mut board = *initial_board;
     for token in move_tokens {
         let move_ = Move::from_uci_string(&board, token).expect("Invalid move syntax");
         board = apply_move(&board, &move_).expect("Illegal move");
@@ -14,7 +14,7 @@ fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
 }
 
 fn process_position_command(arguments: Vec<&str>, board: &mut Board) {
-    if arguments.len() == 0 {
+    if arguments.is_empty() {
         return;
     }
     match arguments[0].to_lowercase().as_str() {
@@ -45,7 +45,7 @@ pub fn process_go_command(arguments: Vec<&str>, player: &impl ChessPlayer, board
 
 pub fn process_command(command: &str, board: &mut Board, player: &impl ChessPlayer) {
     let tokens: Vec<&str> = command.split_whitespace().collect();
-    if tokens.len() == 0 {
+    if tokens.is_empty() {
         return;
     }
     match tokens[0].to_lowercase().as_str() {
