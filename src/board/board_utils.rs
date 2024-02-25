@@ -1,5 +1,5 @@
 use super::{
-    models::{Color, File, Piece, PieceType, Rank, Square},
+    models::{Color, Piece, PieceType, Square},
     move_checking::square_utils::SquareIter,
     Board,
 };

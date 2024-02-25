@@ -1,6 +1,5 @@
 use crate::board::{
-    board_utils::PlayerPieceIter,
-    models::{GameState, Piece, PieceType},
+    models::{Piece, PieceType},
     move_checking::square_utils::SquareIter,
     Board,
 };

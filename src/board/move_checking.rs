@@ -35,16 +35,12 @@ fn check_move_blocked(
 
     if piece == PieceType::Pawn {
         // If moving sideways, must capture a piece (special case: en passant)
-        if src.0 != dest.0 {
-            if board.get_piece_at(dest).is_none() && board.en_passant_target != Some(dest) {
-                return Err("Pawn cannot move sideways without capturing".to_string());
-            }
+        if src.0 != dest.0 && board.get_piece_at(dest).is_none() && board.en_passant_target != Some(dest) {
+            return Err("Pawn cannot move sideways without capturing".to_string());
         }
         // If moving forward, must not be blocked
-        if src.0 == dest.0 {
-            if board.get_piece_at(dest).is_some() {
-                return Err("Pawn cannot move forward through occupied square".to_string());
-            }
+        if src.0 == dest.0 && board.get_piece_at(dest).is_some() {
+            return Err("Pawn cannot move forward through occupied square".to_string());
         }
     }
 
@@ -96,7 +92,7 @@ fn seek_king(board: &Board, color: Color) -> Option<Square> {
             }
         }
     }
-    return None;
+    None
 }
 
 // new_board: Move is already carried out, but active player is not switched
@@ -168,7 +164,7 @@ pub fn is_king_in_check(new_board: &Board) -> bool {
         }
     }
 
-    return false;
+    false
 }
 
 fn update_castling_rights(new_board: &mut Board, src: Square, dest: Square) {
@@ -182,9 +178,9 @@ fn update_castling_rights(new_board: &mut Board, src: Square, dest: Square) {
         Color::White => (Rank::_1, Rank::_8),
         Color::Black => (Rank::_8, Rank::_1),
     };
-    if dest.clone() == Square(File::A, opp_home_rank) {
+    if dest == Square(File::A, opp_home_rank) {
         new_board.revoke_queenside_castling(active_player.opponent())
-    } else if dest.clone() == Square(File::H, opp_home_rank) {
+    } else if dest == Square(File::H, opp_home_rank) {
         new_board.revoke_kingside_castling(active_player.opponent())
     }
     // moving the king removes castling rights
@@ -192,15 +188,15 @@ fn update_castling_rights(new_board: &mut Board, src: Square, dest: Square) {
         new_board.has_kingside_castling_rights(active_player),
         new_board.has_queenside_castling_rights(active_player),
     );
-    if (can_kingside_castle || can_queenside_castle) && src.clone() == Square(File::E, home_rank) {
+    if (can_kingside_castle || can_queenside_castle) && src == Square(File::E, home_rank) {
         new_board.revoke_kingside_castling(active_player);
         new_board.revoke_queenside_castling(active_player);
     }
     // moving a rook removes castling rights
-    if can_kingside_castle && src.clone() == Square(File::H, home_rank) {
+    if can_kingside_castle && src == Square(File::H, home_rank) {
         new_board.revoke_kingside_castling(active_player);
     }
-    if can_queenside_castle && src.clone() == Square(File::A, home_rank) {
+    if can_queenside_castle && src == Square(File::A, home_rank) {
         new_board.revoke_queenside_castling(active_player);
     }
 }
@@ -237,7 +233,7 @@ fn handle_normal_move(board: &Board, src: Square, dest: Square) -> Result<Board,
     check_move_blocked(src_piece.0, src, dest, board)?;
 
     // carry out move
-    let mut new_board = board.clone();
+    let mut new_board = *board;
     new_board.set_piece_at(dest, src_piece);
     new_board.clear_square(src);
 
@@ -318,10 +314,10 @@ fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
         Square(File::G, home_rank),
         Square(File::H, home_rank),
     );
-    let mut new_board = board.clone();
+    let mut new_board = *board;
     new_board.clear_square(king_pos);
     // F square must be empty and not under attack
-    if let Some(_) = board.get_piece_at(f_square) {
+    if board.get_piece_at(f_square).is_some() {
         return Err("Cannot castle through occupied square".to_string());
     }
     new_board.set_piece_at(f_square, Piece(PieceType::King, board.active_player));
@@ -330,7 +326,7 @@ fn handle_kingside_castle(board: &Board) -> Result<Board, String> {
     }
     new_board.clear_square(f_square);
     // G square must be empty and not under attack
-    if let Some(_) = board.get_piece_at(g_square) {
+    if board.get_piece_at(g_square).is_some() {
         return Err("Cannot castle through occupied square".to_string());
     }
     new_board.set_piece_at(g_square, Piece(PieceType::King, board.active_player));
@@ -366,10 +362,10 @@ fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
         Square(File::B, home_rank),
         Square(File::A, home_rank),
     );
-    let mut new_board = board.clone();
+    let mut new_board = *board;
     new_board.clear_square(king_pos);
     // D square must be empty and not under attack
-    if let Some(_) = board.get_piece_at(d_square) {
+    if board.get_piece_at(d_square).is_some() {
         return Err("Cannot castle through occupied square".to_string());
     }
     new_board.set_piece_at(d_square, Piece(PieceType::King, board.active_player));
@@ -378,14 +374,14 @@ fn handle_queenside_castle(board: &Board) -> Result<Board, String> {
     }
     new_board.clear_square(d_square);
     // C square must be empty and not under attack
-    if let Some(_) = board.get_piece_at(c_square) {
+    if board.get_piece_at(c_square).is_some() {
         return Err("Cannot castle through occupied square".to_string());
     }
     new_board.set_piece_at(c_square, Piece(PieceType::King, board.active_player));
     if is_king_in_check(&new_board) {
         return Err("Cannot castle into check".to_string());
     }
-    if let Some(_) = board.get_piece_at(b_square) {
+    if board.get_piece_at(b_square).is_some() {
         return Err("Cannot castle through occupied square".to_string());
     }
     new_board.clear_square(rook_pos);
@@ -491,7 +487,7 @@ fn is_double_pawn_push(board: &Board, src: Square, dest: Square) -> bool {
         Color::White => (Rank::_2, Rank::_4),
         Color::Black => (Rank::_7, Rank::_5),
     };
-    return src.1 == home_rank && dest.1 == hop_rank;
+    src.1 == home_rank && dest.1 == hop_rank
 }
 
 fn get_normal_legal_move_from_pseudolegal(
@@ -514,7 +510,7 @@ fn get_normal_legal_move_from_pseudolegal(
 
     // carry out move
     // TODO: possible perf optimization - make board mutable and undo to avoid cloning
-    let mut new_board = board.clone();
+    let mut new_board = *board;
     new_board.set_piece_at(dest, src_piece);
     new_board.clear_square(src);
 
@@ -531,7 +527,7 @@ fn get_normal_legal_move_from_pseudolegal(
 
     // double pawn push
 
-    if is_double_pawn_push(&board, src, dest) {
+    if is_double_pawn_push(board, src, dest) {
         return Some(LegalMove::DoublePawnPush { file: src.0 });
     }
 
@@ -576,16 +572,16 @@ pub fn can_castle_kingside(board: &Board) -> bool {
         Color::White => Rank::_1,
         Color::Black => Rank::_8,
     };
-    let (king_pos, f_square, g_square, rook_pos) = (
+    let (king_pos, f_square, g_square, _rook_pos) = (
         Square(File::E, home_rank),
         Square(File::F, home_rank),
         Square(File::G, home_rank),
         Square(File::H, home_rank),
     );
-    let mut new_board = board.clone();
+    let mut new_board = *board;
     new_board.clear_square(king_pos);
     // F square must be empty and not under attack
-    if let Some(_) = board.get_piece_at(f_square) {
+    if board.get_piece_at(f_square).is_some() {
         return false;
     }
     new_board.set_piece_at(f_square, Piece(PieceType::King, board.active_player));
@@ -594,14 +590,14 @@ pub fn can_castle_kingside(board: &Board) -> bool {
     }
     new_board.clear_square(f_square);
     // G square must be empty and not under attack
-    if let Some(_) = board.get_piece_at(g_square) {
+    if board.get_piece_at(g_square).is_some() {
         return false; // TODO avoid cloning board, use square attack helper function instead
     }
     new_board.set_piece_at(g_square, Piece(PieceType::King, board.active_player));
     if is_king_in_check(&new_board) {
         return false;
     }
-    return true;
+    true
 }
 
 pub fn can_castle_queenside(board: &Board) -> bool {
@@ -623,10 +619,10 @@ pub fn can_castle_queenside(board: &Board) -> bool {
         Square(File::C, home_rank),
         Square(File::B, home_rank),
     );
-    let mut new_board = board.clone();
+    let mut new_board = *board;
     new_board.clear_square(king_pos);
     // D square must be empty and not under attack
-    if let Some(_) = board.get_piece_at(d_square) {
+    if board.get_piece_at(d_square).is_some() {
         return false;
     }
     new_board.set_piece_at(d_square, Piece(PieceType::King, board.active_player));
@@ -635,14 +631,14 @@ pub fn can_castle_queenside(board: &Board) -> bool {
     }
     new_board.clear_square(d_square);
     // C square must be empty and not under attack
-    if let Some(_) = board.get_piece_at(c_square) {
+    if board.get_piece_at(c_square).is_some() {
         return false;
     }
     new_board.set_piece_at(c_square, Piece(PieceType::King, board.active_player));
     if is_king_in_check(&new_board) {
         return false;
     }
-    if let Some(_) = board.get_piece_at(b_square) {
+    if board.get_piece_at(b_square).is_some() {
         return false;
     }
     true
@@ -653,16 +649,14 @@ pub fn get_legal_move_from_move(board: &Board, move_: &Move) -> Option<LegalMove
         Move::Normal { src, dest } => {
             if is_promotion_move(board, *src, *dest) {
                 None // missing promotion piece
-            } else {
-                if let Some(Piece(src_piece, owner)) = board.get_piece_at(*src) {
-                    if is_move_pseudo_legal(*src, *dest, src_piece, owner) {
-                        get_normal_legal_move_from_pseudolegal(board, *src, *dest)
-                    } else {
-                        None
-                    }
+            } else if let Some(Piece(src_piece, owner)) = board.get_piece_at(*src) {
+                if is_move_pseudo_legal(*src, *dest, src_piece, owner) {
+                    get_normal_legal_move_from_pseudolegal(board, *src, *dest)
                 } else {
                     None
                 }
+            } else {
+                None
             }
         }
         Move::CastleKingside { .. } => {
@@ -730,7 +724,7 @@ pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Opti
 }
 
 pub fn apply_legal_move(board: &Board, move_: &LegalMove) -> Board {
-    let mut new_board = board.clone();
+    let mut new_board = *board;
     new_board.en_passant_target = None;
     match move_ {
         LegalMove::Normal {
@@ -830,8 +824,5 @@ pub fn apply_legal_move(board: &Board, move_: &LegalMove) -> Board {
 }
 
 pub fn is_move_legal(board: &Board, move_: &Move) -> bool {
-    match apply_move(board, move_) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    apply_move(board, move_).is_ok()
 }

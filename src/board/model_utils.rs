@@ -84,7 +84,7 @@ impl File {
 
 impl Display for File {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", (*self as u8 + 'a' as u8) as char)
+        write!(f, "{}", (*self as u8 + b'a') as char)
     }
 }
 
@@ -180,7 +180,7 @@ impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for rank in (0..8).rev() {
             self.fmt_rank(f, rank)?;
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }

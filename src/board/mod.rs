@@ -286,7 +286,7 @@ impl Board {
                     src,
                     dest,
                     promotion: promotion_piece,
-                    castle_mask: castle_mask,
+                    castle_mask,
                 });
             }
         }

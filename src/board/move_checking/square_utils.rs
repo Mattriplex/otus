@@ -4,6 +4,12 @@ pub struct SquareIter {
     current: usize,
 }
 
+impl Default for SquareIter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SquareIter {
     pub fn new() -> SquareIter {
         SquareIter { current: 0 }

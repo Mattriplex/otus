@@ -2,7 +2,7 @@ use tests::move_checking::get_legal_move_from_move;
 
 use crate::board::*;
 
-use self::move_checking::{apply_legal_move, apply_move};
+use self::move_checking::{apply_legal_move};
 
 #[test]
 fn test_fen_default_board() {
@@ -196,7 +196,7 @@ fn perft(board: &Board, depth: u8) -> u64 {
 
     let mut count = 0;
     for mv in board.get_legal_moves() {
-        let new_board = apply_legal_move(&board, &mv);
+        let new_board = apply_legal_move(board, &mv);
         let new_positions = perft(&new_board, depth - 1);
         count += new_positions;
         //if depth > 2 { println!("{}: {}", mv, new_positions); }

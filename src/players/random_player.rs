@@ -1,7 +1,7 @@
 use rand::Rng;
 
 use crate::board::{
-    models::{LegalMove, Move},
+    models::{LegalMove},
     Board,
 };
 

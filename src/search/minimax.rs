@@ -1,8 +1,8 @@
 use rand::Rng;
 
 use crate::board::{
-    models::{GameState, LegalMove, Move},
-    move_checking::{apply_legal_move, apply_move},
+    models::{GameState, LegalMove},
+    move_checking::{apply_legal_move},
     Board,
 };
 
