@@ -481,6 +481,15 @@ pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Opti
     }
 }
 
+// make move, mutates board
+pub fn make_move(board: &mut Board, move_: &Move) -> Result<Board, String> {
+    match get_legal_move_from_move(board, move_) {
+        Some(legal_move) => Ok(apply_legal_move(board, &legal_move)),
+        None => Err("Move is not legal".to_string()),
+    }
+}
+
+
 pub fn apply_legal_move(board: &Board, move_: &LegalMove) -> Board {
     let mut new_board = *board;
     new_board.en_passant_target = None;

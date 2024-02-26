@@ -4,7 +4,7 @@ use rand::Rng;
 
 use crate::{board::{
     models::{GameState, LegalMove},
-    move_checking::apply_legal_move,
+    move_checking::{apply_legal_move, is_king_in_check},
     Board,
 }, uci::WorkerMessage};
 
@@ -49,17 +49,21 @@ pub fn search_minimax_threaded(board: &Board, depth: u32, rx: mpsc::Receiver<()>
 }
 
 fn nega_max(board: &Board, depth: u32) -> f32 {
-    let gamestate = board.get_gamestate();
-    if gamestate == GameState::Mated(board.active_player) {
-        return f32::MIN;
-    }
-    if gamestate == GameState::Stalemate {
-        return 0.0;
-    }
     if depth == 0 {
-        return get_material_eval(board);
+        match board.get_gamestate() {
+            GameState::Mated(_) => return f32::MIN,
+            GameState::Stalemate => return 0.0,
+            GameState::InProgress => return get_material_eval(board),
+        }
     }
-    let moves = board.get_legal_moves();
+    let moves = board.get_legal_moves(); // Avoid calling get_gamestate because it would duplicate work from get_legal_moves()
+    if moves.is_empty() {
+        if is_king_in_check(board) {
+            return f32::MIN; // mated
+        } else {
+            return 0.0; // stalemate
+        }
+    }
     let mut best_score = f32::MIN; // if no legal moves, return worst possible score TODO fix this for stalemate
     for move_ in moves {
         let new_board = apply_legal_move(board, &move_);
