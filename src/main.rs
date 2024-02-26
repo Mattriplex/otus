@@ -41,8 +41,8 @@ pub fn run_game(white_player: &dyn ChessPlayer, black_player: &dyn ChessPlayer) 
     let mut board = Board::default();
     loop {
         let m = match board.active_player {
-            Color::White => white_player.make_move(&board),
-            Color::Black => black_player.make_move(&board),
+            Color::White => white_player.propose_move(&board),
+            Color::Black => black_player.propose_move(&board),
         };
         board = apply_legal_move(&board, &m);
         match board.get_gamestate() {

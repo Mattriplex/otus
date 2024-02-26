@@ -53,7 +53,7 @@ impl HumanPlayer {
 }
 
 impl ChessPlayer for HumanPlayer {
-    fn make_move(&self, board: &Board) -> LegalMove {
+    fn propose_move(&self, board: &Board) -> LegalMove {
         println!("{}", board);
         println!("You are {}. Enter your move: ", board.active_player);
         loop {

@@ -257,10 +257,10 @@ impl Board {
             },
         ) {
             for promotion_piece in [
-                PromotionPieceType::Queen,
-                PromotionPieceType::Rook,
-                PromotionPieceType::Bishop,
-                PromotionPieceType::Knight,
+                PieceType::Queen,
+                PieceType::Rook,
+                PieceType::Bishop,
+                PieceType::Knight,
             ] {
                 moves.push(LegalMove::Promotion {
                     src,
@@ -449,7 +449,6 @@ impl Board {
     }
 
     pub fn make_move(&mut self, move_: &LegalMove) {
-        let en_passant_target = self.en_passant_target;
         let active_player = self.active_player;
         self.en_passant_target = None;
         match move_ {
@@ -467,74 +466,91 @@ impl Board {
                 castle_mask,
                 promotion,
             } => {
-                let piece = match promotion {
-                    PromotionPieceType::Queen => PieceType::Queen,
-                    PromotionPieceType::Rook => PieceType::Rook,
-                    PromotionPieceType::Bishop => PieceType::Bishop,
-                    PromotionPieceType::Knight => PieceType::Knight,
-                };
-                self.set_piece_at(*dest, Piece(piece, active_player));
+                self.set_piece_at(*dest, Piece(*promotion, active_player));
                 self.clear_square(*src);
                 self.castling_rights ^= castle_mask;
             }
             LegalMove::CastleKingside {
                 castle_mask,
             } => {
-                let home_rank = match active_player {
-                    Color::White => Rank::_1,
-                    Color::Black => Rank::_8,
-                };
-                let (king_pos, f_square, g_square, rook_pos) = (
-                    Square(File::E, home_rank),
-                    Square(File::F, home_rank),
-                    Square(File::G, home_rank),
-                    Square(File::H, home_rank),
-                );
-                self.move_piece(king_pos, g_square);
-                self.move_piece(rook_pos, f_square);
+                self.move_piece(active_player.king_home_square(), Square(File::G, active_player.home_rank()));
+                self.move_piece(Square(File::H, active_player.home_rank()), Square(File::F, active_player.home_rank()));
                 self.castling_rights ^= castle_mask;
             }
             LegalMove::CastleQueenside { castle_mask } => {
-                let home_rank = match active_player {
-                    Color::White => Rank::_1,
-                    Color::Black => Rank::_8,
-                };
-                let (king_pos, d_square, c_square, rook_pos) = (
-                    Square(File::E, home_rank),
-                    Square(File::D, home_rank),
-                    Square(File::C, home_rank),
-                    Square(File::A, home_rank),
-                );
-                self.move_piece(king_pos, c_square);
-                self.move_piece(rook_pos, d_square);
+                self.move_piece(active_player.king_home_square(), Square(File::C, active_player.home_rank()));
+                self.move_piece(Square(File::A, active_player.home_rank()), Square(File::D, active_player.home_rank()));
                 self.castling_rights ^= castle_mask;
             }
-            LegalMove::DoublePawnPush { file: f } => {
+            LegalMove::DoublePawnPush { file, .. } => {
                 let (src_rank, target_rank, dst_rank) = match active_player {
                     Color::White => (Rank::_2, Rank::_3, Rank::_4),
                     Color::Black => (Rank::_7, Rank::_6, Rank::_5),
                 };
                 self.set_piece_at(
-                    Square(*f, dst_rank),
+                    Square(*file, dst_rank),
                     Piece(PieceType::Pawn, self.active_player),
                 );
-                self.clear_square(Square(*f, src_rank));
-                self.en_passant_target = Some(Square(*f, target_rank));
+                self.clear_square(Square(*file, src_rank));
+                self.en_passant_target = Some(Square(*file, target_rank));
             }
-            LegalMove::EnPassantCapture { src } => {
-                let target_square = match en_passant_target {
-                    Some(pos) => pos,
-                    None => unreachable!("No en passant target"),
-                };
-                self.set_piece_at(target_square, self.get_piece_at(*src).unwrap());
-                self.clear_square(*src);
-                let captured_pawn_pos = match self.active_player {
-                    Color::White => Square(target_square.0, Rank::_5),
-                    Color::Black => Square(target_square.0, Rank::_4),
-                };
-                self.clear_square(captured_pawn_pos);
+            LegalMove::EnPassantCapture { src, dest } => {
+                self.move_piece(*src, *dest);
+                self.clear_square(Square(dest.0, active_player.opponent().double_push_rank()));
             }
         }
         self.active_player = active_player.opponent();
+    }
+
+    // TODO: Unmake move currently DOES NOT restore the en passant target
+    // This means that in general, the board cannot be relied to give correct legal moves after unmake_move
+    // Or rather, the board is reliable again after a forward-move (make_move) has been made
+    // However, moves have been encoded in a way that allows previously (correctly) generated en passant captures to be played
+    pub fn unmake_move(&mut self, move_: &LegalMove) {
+        self.active_player = self.active_player.opponent();
+        let active_player = self.active_player;
+        self.en_passant_target = None;
+        match move_ {
+            LegalMove::Normal {
+                src,
+                dest,
+                castle_mask,
+            } => {
+                self.move_piece(*dest, *src);
+                self.castling_rights ^= castle_mask;
+            }
+            LegalMove::Promotion {
+                src,
+                dest,
+                castle_mask,
+                ..
+            } => {
+                self.set_piece_at(*src, Piece(PieceType::Pawn, active_player));
+                self.clear_square(*dest);
+                self.castling_rights ^= castle_mask;
+            }
+            LegalMove::CastleKingside {
+                castle_mask,
+            } => {
+                self.move_piece(Square(File::G, active_player.home_rank()), active_player.king_home_square());
+                self.move_piece(Square(File::F, active_player.home_rank()), Square(File::H, active_player.home_rank()));
+                self.castling_rights ^= castle_mask;
+            }
+            LegalMove::CastleQueenside { castle_mask } => {
+                self.move_piece(Square(File::C, active_player.home_rank()), active_player.king_home_square());
+                self.move_piece(Square(File::D, active_player.home_rank()), Square(File::A, active_player.home_rank()));
+                self.castling_rights ^= castle_mask;
+            }
+            LegalMove::DoublePawnPush { file } => {
+                self.set_piece_at(Square(*file, active_player.pawn_start_rank()), Piece(PieceType::Pawn, self.active_player));
+                self.clear_square(Square(*file, active_player.double_push_rank()));
+            },
+            LegalMove::EnPassantCapture { src, dest } => {
+                self.set_piece_at(*src, self.get_piece_at(*dest).unwrap());
+                self.clear_square(*dest);
+                // put back the captured pawn
+                self.set_piece_at(Square(dest.0, active_player.opponent().double_push_rank()), Piece(PieceType::Pawn, active_player.opponent()));
+            }
+        }
     }
 }

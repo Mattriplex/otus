@@ -1,6 +1,6 @@
 use tests::move_checking::get_legal_move_from_move;
 
-use crate::board::*;
+use crate::{board::*, search::perft::perft};
 
 use self::move_checking::{apply_legal_move};
 
@@ -184,11 +184,7 @@ fn test_fen_board() {
     assert!(!board.has_queenside_castling_rights(Black));
 }
 
-// TODO short game
-// TODO stalemate game
-
-// TODO number of reached positions
-
+/*
 fn perft(board: &Board, depth: u8) -> u64 {
     if depth == 0 {
         return 1;
@@ -203,6 +199,7 @@ fn perft(board: &Board, depth: u8) -> u64 {
     }
     count
 }
+ */
 
 #[test]
 fn test_perf_starting_pos() {

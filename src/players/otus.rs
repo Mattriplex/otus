@@ -9,7 +9,7 @@ use crate::{
 use super::{ChessPlayer, Otus};
 
 impl ChessPlayer for Otus {
-    fn make_move(&self, board: &Board) -> LegalMove {
+    fn propose_move(&self, board: &Board) -> LegalMove {
         search_minimax(board, 3)
     }
 }

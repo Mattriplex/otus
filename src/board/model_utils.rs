@@ -24,9 +24,11 @@ pub trait ColorProps {
     fn opponent(&self) -> Color;
     fn home_rank(&self) -> Rank;
     fn hop_rank(&self) -> Rank;
+    fn double_push_rank(&self) -> Rank;
     fn pawn_start_rank(&self) -> Rank;
     fn opp_home_rank(&self) -> Rank;
     fn castle_bit_mask(&self) -> u8;
+    fn king_home_square(&self) -> Square;
 }
 
 impl ColorProps for Color {
@@ -48,6 +50,12 @@ impl ColorProps for Color {
             Color::Black => Rank::_6,
         }
     }
+    fn double_push_rank(&self) -> Rank {
+        match self {
+            Color::White => Rank::_4,
+            Color::Black => Rank::_5,
+        }
+    }
     fn pawn_start_rank(&self) -> Rank {
         match self {
             Color::White => Rank::_2,
@@ -64,6 +72,12 @@ impl ColorProps for Color {
         match self {
             Color::White => 0b1100,
             Color::Black => 0b0011,
+        }
+    }
+    fn king_home_square(&self) -> Square {
+        match self {
+            Color::White => Square(File::E, Rank::_1),
+            Color::Black => Square(File::E, Rank::_8),
         }
     }
 }
@@ -288,13 +302,13 @@ impl LegalMove {
             } => Move::Promotion {
                 src: *src,
                 dest: *dest,
-                promotion: *promotion,
+                promotion: promotion.to_promotion(),
             },
-            LegalMove::EnPassantCapture { src } => Move::Normal {
+            LegalMove::EnPassantCapture { src, dest } => Move::Normal {
                 src: *src,
-                dest: board.en_passant_target.expect("En passant target empty"),
+                dest: *dest,
             },
-            LegalMove::DoublePawnPush { file } => match board.active_player {
+            LegalMove::DoublePawnPush { file, .. } => match board.active_player {
                 Color::White => Move::Normal {
                     src: Square(*file, Rank::_2),
                     dest: Square(*file, Rank::_4),
@@ -304,6 +318,38 @@ impl LegalMove {
                     dest: Square(*file, Rank::_5),
                 },
             },
+        }
+    }
+}
+
+
+pub trait PromotionToPiece {
+    fn to_piece(&self) -> PieceType;
+}
+
+impl PromotionToPiece for PromotionPieceType {
+    fn to_piece(&self) -> PieceType {
+            match self {
+                PromotionPieceType::Knight => PieceType::Knight,
+                PromotionPieceType::Bishop => PieceType::Bishop,
+                PromotionPieceType::Rook => PieceType::Rook,
+                PromotionPieceType::Queen => PieceType::Queen,
+            }
+    }
+}
+
+pub trait PieceToPromotion {
+    fn to_promotion(&self) -> PromotionPieceType;
+}
+
+impl PieceToPromotion for PieceType {
+    fn to_promotion(&self) -> PromotionPieceType {
+        match self {
+            PieceType::Knight => PromotionPieceType::Knight,
+            PieceType::Bishop => PromotionPieceType::Bishop,
+            PieceType::Rook => PromotionPieceType::Rook,
+            PieceType::Queen => PromotionPieceType::Queen,
+            _ => unreachable!(),
         }
     }
 }

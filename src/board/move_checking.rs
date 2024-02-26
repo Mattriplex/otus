@@ -9,7 +9,7 @@ use self::square_utils::{
 };
 
 use super::{
-    model_utils::ColorProps, models::LegalMove, Color, File, Piece, PieceType, PromotionPieceType,
+    model_utils::{ColorProps, PromotionToPiece}, models::LegalMove, Color, File, Piece, PieceType, PromotionPieceType,
     Rank, Square,
 };
 
@@ -56,10 +56,10 @@ fn check_move_blocked(
 }
 
 fn seek_king(board: &Board, color: Color) -> Option<Square> {
-    // TODO optimize this by searching on home row first
-    for file in 0..8 {
-        for rank in 0..8 {
-            let pos = Square(File::from_i8(file).unwrap(), Rank::from_i8(rank).unwrap());
+    // search home row first, king is most likely there
+    for rank in [color.home_rank(), Rank::_2, Rank::_7, Rank::_3, Rank::_4, Rank::_5, Rank::_6, color.opp_home_rank()] {
+        for file in 0..8 {
+            let pos = Square(File::from_i8(file).unwrap(), rank);
             if let Some(Piece(PieceType::King, c)) = board.get_piece_at(pos) {
                 if c == color {
                     return Some(pos);
@@ -182,7 +182,7 @@ fn try_get_en_passant_capture(new_board: &mut Board, src: Square) -> Option<Lega
     new_board.clear_square(captured_pawn_pos); // remove pawn for subsequent king check in outer function
                                                //TODO fix this, ugly af, function responsibilities are unclear
 
-    Some(LegalMove::EnPassantCapture { src })
+    Some(LegalMove::EnPassantCapture { src, dest: en_passant_target })
 }
 
 fn get_castling_mask(old_board: &Board, src: Square, dest: Square) -> u8 {
@@ -312,7 +312,7 @@ fn get_promotion_legal_move_from_pseudolegal(
         src,
         dest,
         castle_mask: castlemask,
-        promotion,
+        promotion: promotion.to_piece(),
     })
 }
 
@@ -447,6 +447,7 @@ Assumes move is pseudo legal, i.e.
 pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Option<LegalMove> {
     match move_ {
         Move::Normal { src, dest } => {
+            // TODO remove this check, should never happen
             if is_promotion_move(board, *src, *dest) {
                 None // missing promotion piece
             } else {

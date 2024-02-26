@@ -85,7 +85,7 @@ pub enum LegalMove {
                          // castle mask will be XOR-ed against the board's castling rights
     },
     DoublePawnPush {
-        file: File,
+        file: File
     },
     CastleKingside {
         castle_mask: u8
@@ -97,10 +97,11 @@ pub enum LegalMove {
         src: Square,
         dest: Square,
         castle_mask: u8, // in case the pawn captures a rook
-        promotion: PromotionPieceType,
+        promotion: PieceType,
     },
     EnPassantCapture {
         src: Square, //dest is given by boards en passant square
+        dest: Square, // en passant target
     },
 }
 
