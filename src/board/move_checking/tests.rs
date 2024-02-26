@@ -1,6 +1,6 @@
 use rstest::rstest;
 
-use crate::board::model_utils::Opponent;
+use crate::board::model_utils::ColorProps;
 use crate::board::move_checking::apply_move;
 use crate::board::move_checking::is_move_legal;
 use crate::board::Color::*;

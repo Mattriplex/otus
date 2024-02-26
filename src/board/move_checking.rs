@@ -9,7 +9,7 @@ use self::square_utils::{
 };
 
 use super::{
-    model_utils::Opponent, models::LegalMove, Color, File, Piece, PieceType, PromotionPieceType,
+    model_utils::ColorProps, models::LegalMove, Color, File, Piece, PieceType, PromotionPieceType,
     Rank, Square,
 };
 
@@ -419,14 +419,14 @@ pub fn get_legal_move_from_move(board: &Board, move_: &Move) -> Option<LegalMove
         }
         Move::CastleKingside { .. } => {
             if can_castle_kingside(board) {
-                Some(LegalMove::CastleKingside)
+                Some(LegalMove::CastleKingside { castle_mask: board.castling_rights & board.active_player.castle_bit_mask() })
             } else {
                 None
             }
         }
         Move::CastleQueenside { .. } => {
             if can_castle_queenside(board) {
-                Some(LegalMove::CastleQueenside)
+                Some(LegalMove::CastleQueenside { castle_mask: board.castling_rights & board.active_player.castle_bit_mask() })
             } else {
                 None
             }
@@ -455,14 +455,14 @@ pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Opti
         }
         Move::CastleKingside { .. } => {
             if can_castle_kingside(board) {
-                Some(LegalMove::CastleKingside)
+                Some(LegalMove::CastleKingside { castle_mask: board.castling_rights & board.active_player.castle_bit_mask() })
             } else {
                 None
             }
         }
         Move::CastleQueenside { .. } => {
             if can_castle_queenside(board) {
-                Some(LegalMove::CastleQueenside)
+                Some(LegalMove::CastleQueenside { castle_mask: board.castling_rights & board.active_player.castle_bit_mask() })
             } else {
                 None
             }
@@ -492,101 +492,7 @@ pub fn make_move(board: &mut Board, move_: &Move) -> Result<Board, String> {
 
 pub fn apply_legal_move(board: &Board, move_: &LegalMove) -> Board {
     let mut new_board = *board;
-    new_board.en_passant_target = None;
-    match move_ {
-        LegalMove::Normal {
-            src,
-            dest,
-            castle_mask,
-        } => {
-            let piece = new_board.get_piece_at(*src).unwrap();
-            new_board.set_piece_at(*dest, piece);
-            new_board.clear_square(*src);
-            new_board.castling_rights ^= castle_mask;
-        }
-        LegalMove::Promotion {
-            src,
-            dest,
-            castle_mask,
-            promotion,
-        } => {
-            let piece = match promotion {
-                PromotionPieceType::Queen => PieceType::Queen,
-                PromotionPieceType::Rook => PieceType::Rook,
-                PromotionPieceType::Bishop => PieceType::Bishop,
-                PromotionPieceType::Knight => PieceType::Knight,
-            };
-            new_board.set_piece_at(*dest, Piece(piece, new_board.active_player));
-            new_board.clear_square(*src);
-            new_board.castling_rights ^= castle_mask;
-        }
-        LegalMove::CastleKingside => {
-            let home_rank = match new_board.active_player {
-                Color::White => Rank::_1,
-                Color::Black => Rank::_8,
-            };
-            let (king_pos, f_square, g_square, rook_pos) = (
-                Square(File::E, home_rank),
-                Square(File::F, home_rank),
-                Square(File::G, home_rank),
-                Square(File::H, home_rank),
-            );
-            new_board.clear_square(king_pos);
-            new_board.set_piece_at(g_square, Piece(PieceType::King, new_board.active_player));
-            new_board.clear_square(rook_pos);
-            new_board.set_piece_at(f_square, Piece(PieceType::Rook, new_board.active_player));
-            new_board.castling_rights &= match new_board.active_player {
-                Color::White => 0b0011,
-                Color::Black => 0b1100,
-            };
-        }
-        LegalMove::CastleQueenside => {
-            let home_rank = match new_board.active_player {
-                Color::White => Rank::_1,
-                Color::Black => Rank::_8,
-            };
-            let (king_pos, d_square, c_square, rook_pos) = (
-                Square(File::E, home_rank),
-                Square(File::D, home_rank),
-                Square(File::C, home_rank),
-                Square(File::A, home_rank),
-            );
-            new_board.clear_square(king_pos);
-            new_board.set_piece_at(c_square, Piece(PieceType::King, new_board.active_player));
-            new_board.clear_square(rook_pos);
-            new_board.set_piece_at(d_square, Piece(PieceType::Rook, new_board.active_player));
-            new_board.castling_rights &= match new_board.active_player {
-                Color::White => 0b0011,
-                Color::Black => 0b1100,
-            };
-        }
-        LegalMove::DoublePawnPush { file: f } => {
-            let (src_rank, target_rank, dst_rank) = match new_board.active_player {
-                Color::White => (Rank::_2, Rank::_3, Rank::_4),
-                Color::Black => (Rank::_7, Rank::_6, Rank::_5),
-            };
-            new_board.set_piece_at(
-                Square(*f, dst_rank),
-                Piece(PieceType::Pawn, new_board.active_player),
-            );
-            new_board.clear_square(Square(*f, src_rank));
-            new_board.en_passant_target = Some(Square(*f, target_rank));
-        }
-        LegalMove::EnPassantCapture { src } => {
-            let en_passant_target = match board.en_passant_target {
-                Some(pos) => pos,
-                None => unreachable!("No en passant target"),
-            };
-            new_board.set_piece_at(en_passant_target, new_board.get_piece_at(*src).unwrap());
-            new_board.clear_square(*src);
-            let captured_pawn_pos = match new_board.active_player {
-                Color::White => Square(en_passant_target.0, Rank::_5),
-                Color::Black => Square(en_passant_target.0, Rank::_4),
-            };
-            new_board.clear_square(captured_pawn_pos);
-        }
-    }
-    new_board.active_player = board.active_player.opponent();
+    new_board.make_move(move_);
     new_board
 }
 

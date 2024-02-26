@@ -87,12 +87,16 @@ pub enum LegalMove {
     DoublePawnPush {
         file: File,
     },
-    CastleKingside,
-    CastleQueenside,
+    CastleKingside {
+        castle_mask: u8
+    },
+    CastleQueenside {
+        castle_mask: u8
+    },
     Promotion {
         src: Square,
         dest: Square,
-        castle_mask: u8,
+        castle_mask: u8, // in case the pawn captures a rook
         promotion: PromotionPieceType,
     },
     EnPassantCapture {

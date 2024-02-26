@@ -1,6 +1,6 @@
 use otus::{
     board::{
-        model_utils::Opponent,
+        model_utils::ColorProps,
         models::{Color, GameState},
         move_checking::apply_legal_move,
         Board,

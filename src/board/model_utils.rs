@@ -20,15 +20,50 @@ impl fmt::Display for PieceType {
     }
 }
 
-pub trait Opponent {
-    fn opponent(&self) -> Self;
+pub trait ColorProps {
+    fn opponent(&self) -> Color;
+    fn home_rank(&self) -> Rank;
+    fn hop_rank(&self) -> Rank;
+    fn pawn_start_rank(&self) -> Rank;
+    fn opp_home_rank(&self) -> Rank;
+    fn castle_bit_mask(&self) -> u8;
 }
 
-impl Opponent for Color {
+impl ColorProps for Color {
     fn opponent(&self) -> Color {
         match self {
             Color::White => Color::Black,
             Color::Black => Color::White,
+        }
+    }
+    fn home_rank(&self) -> Rank {
+        match self {
+            Color::White => Rank::_1,
+            Color::Black => Rank::_8,
+        }
+    }
+    fn hop_rank(&self) -> Rank {
+        match self {
+            Color::White => Rank::_3,
+            Color::Black => Rank::_6,
+        }
+    }
+    fn pawn_start_rank(&self) -> Rank {
+        match self {
+            Color::White => Rank::_2,
+            Color::Black => Rank::_7,
+        }
+    }
+    fn opp_home_rank(&self) -> Rank {
+        match self {
+            Color::White => Rank::_8,
+            Color::Black => Rank::_1,
+        }
+    }
+    fn castle_bit_mask(&self) -> u8 {
+        match self {
+            Color::White => 0b1100,
+            Color::Black => 0b0011,
         }
     }
 }
@@ -243,8 +278,8 @@ impl LegalMove {
                 src: *src,
                 dest: *dest,
             },
-            LegalMove::CastleKingside => Move::CastleKingside,
-            LegalMove::CastleQueenside => Move::CastleQueenside,
+            LegalMove::CastleKingside {.. } => Move::CastleKingside,
+            LegalMove::CastleQueenside {.. } => Move::CastleQueenside,
             LegalMove::Promotion {
                 src,
                 dest,
