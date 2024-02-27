@@ -25,7 +25,7 @@ fn is_sliding_path_free(board: &Board, src: Square, dest: Square) -> bool {
     true
 }
 
-fn seek_king(board: &Board, color: Color) -> Square {
+pub fn seek_king(board: &Board, color: Color) -> Square {
     // search home row first, king is most likely there
     for rank in [
         color.home_rank(),

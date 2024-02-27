@@ -19,7 +19,7 @@ fn main() {
             }
             "perftest" => {
                 let board = Board::default();
-                println!("{}", search_minimax(&board, 5).to_move(&board));
+                println!("{}", search_minimax(&board, 6).to_move(&board));
             }
             _ => println!("Invalid argument"),
         }
