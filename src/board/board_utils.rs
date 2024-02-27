@@ -1,6 +1,6 @@
 use super::{
     models::{Color, Piece, PieceType, Square},
-    move_checking::square_utils::SquareIter,
+    move_checking::square_utils::{pos_plus, DirIter, SquareIter},
     Board,
 };
 
@@ -37,4 +37,81 @@ impl<'a> Iterator for PlayerPieceIter<'a> {
             }
         }
     }
+}
+
+// Is square under attack from opponent of active player
+pub fn is_square_attacked(board: &Board, target: Square) -> bool {
+    let pawn_dir = match board.active_player {
+        Color::White => 1,
+        Color::Black => -1,
+    };
+    let pawn_attack_dirs = [(1, pawn_dir), (-1, pawn_dir)];
+
+    // diagonal moves
+    for dir in DirIter::bishop() {
+        let pos = match pos_plus(target, dir) {
+            Some(pos) => pos,
+            None => continue,
+        };
+        if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
+            if owner == board.active_player {
+                continue; //this direction is safe, attacks blocked by friendly piece
+            }
+            if pawn_attack_dirs.contains(&dir) && piece == PieceType::Pawn {
+                return true;
+            }
+            match piece {
+                PieceType::Bishop => return true,
+                PieceType::Queen => return true,
+                PieceType::King => return true,
+                _ => continue, // enemy piece blocks diagonal attacks
+            }
+            // cast ray to detect distant attackers
+        };
+        while let Some(pos) = pos_plus(pos, dir) {
+            if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
+                if owner == board.active_player {
+                    break; //attacks blocked by friendly piece
+                }
+                match piece {
+                    PieceType::Bishop => return true,
+                    PieceType::Queen => return true,
+                    _ => break, // enemy piece blocks sliding attacks
+                }
+            }
+        }
+    }
+
+    // horizontal and vertical moves
+    for dir in DirIter::rook() {
+        let pos = match pos_plus(target, dir) {
+            Some(pos) => pos,
+            None => continue,
+        };
+        if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
+            if owner == board.active_player {
+                continue; //this direction is safe, attacks blocked by friendly piece
+            }
+            match piece {
+                PieceType::Rook => return true,
+                PieceType::Queen => return true,
+                PieceType::King => return true,
+                _ => continue, // enemy piece blocks horizontal and vertical attacks
+            }
+            // cast ray to detect distant attackers
+        };
+        while let Some(pos) = pos_plus(pos, dir) {
+            if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
+                if owner == board.active_player {
+                    break; //attacks blocked by friendly piece
+                }
+                match piece {
+                    PieceType::Rook => return true,
+                    PieceType::Queen => return true,
+                    _ => break, // enemy piece blocks sliding attacks
+                }
+            }
+        }
+    }
+    false
 }

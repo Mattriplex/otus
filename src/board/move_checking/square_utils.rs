@@ -93,14 +93,14 @@ const ROOK_DIRS: [(i8, i8); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 const BISHOP_DIRS: [(i8, i8); 4] = [(1, 1), (1, -1), (-1, -1), (-1, 1)];
 
 const ALL_DIRS: [(i8, i8); 8] = [
-    (0, 1),
-    (1, 1),
-    (1, 0),
-    (1, -1),
-    (0, -1),
-    (-1, -1),
-    (-1, 0),
-    (-1, 1),
+    (0, 1),   // forward
+    (1, 1),   // forward right
+    (1, 0),   // right
+    (1, -1),  // back right
+    (0, -1),  // back
+    (-1, -1), // back left
+    (-1, 0),  // left
+    (-1, 1),  // forward left
 ];
 
 const KNIGHT_HOPS: [(i8, i8); 8] = [
