@@ -4,57 +4,42 @@ mod tests;
 
 use crate::board::{Board, Move};
 
-use self::square_utils::{
-    is_move_pseudo_legal, pos_plus, DirIter, KnightHopIter, RayIter, SlideIter,
-};
+use self::square_utils::{is_move_pseudo_legal, SlideIter};
 
 use super::{
-    board_utils::is_square_attacked, model_utils::{ColorProps, PromotionToPiece}, models::LegalMove, Color, File, Piece, PieceType, PromotionPieceType, Rank, Square
+    board_utils::is_square_attacked,
+    model_utils::{ColorProps, PromotionToPiece},
+    models::LegalMove,
+    Color, File, Piece, PieceType, PromotionPieceType, Rank, Square,
 };
 
-fn check_move_blocked(
+fn player_owns_src_but_not_dest(
     piece: PieceType,
     src: Square,
     dest: Square,
     board: &Board,
-) -> Result<(), String> {
+) -> bool {
     // All pieces: cannot move to a square occupied by a piece of the same color
     // this also filters null moves (src == dest)
-    board.get_piece_at(dest).map_or(Ok(()), |dest_piece| {
-        if dest_piece.1 == board.active_player {
-            Err("Tried to move to a square occupied by a piece of the same color".to_string())
-        } else {
-            Ok(())
-        }
-    })?;
-
-    if piece == PieceType::Knight || piece == PieceType::King {
-        return Ok(());
+    if board
+        .get_piece_at(dest)
+        .map_or(false, |p| p.1 == board.active_player)
+    {
+        return false;
     }
+    true
+}
 
-    if piece == PieceType::Pawn {
-        // If moving sideways, must capture a piece (special case: en passant)
-        if src.0 != dest.0
-            && board.get_piece_at(dest).is_none()
-            && board.en_passant_target != Some(dest)
-        {
-            return Err("Pawn cannot move sideways without capturing".to_string());
-        }
-        // If moving forward, must not be blocked
-        if src.0 == dest.0 && board.get_piece_at(dest).is_some() {
-            return Err("Pawn cannot move forward through occupied square".to_string());
-        }
-    }
-
-    // Rook, Bishop, Queen: cannot move through occupied squares
-    // Also checks long pawn move
+// To be used with bishop, rook, queen
+// returns true if squares between src and dest are free of pieces (exclusive)
+fn is_sliding_path_free(board: &Board, src: Square, dest: Square) -> bool {
     let slide_iter = SlideIter::new(src, dest);
     for pos in slide_iter {
         if board.get_piece_at(pos).is_some() {
-            return Err("Sliding move is blocked".to_string());
+            return false;
         }
     }
-    Ok(())
+    true
 }
 
 fn seek_king(board: &Board, color: Color) -> Square {
@@ -101,36 +86,6 @@ pub fn apply_move(board: &Board, move_: &Move) -> Result<Board, String> {
         Some(legal_move) => Ok(apply_legal_move(board, &legal_move)),
         None => Err("Move is not legal".to_string()),
     }
-}
-
-// Returns Some if move is an en passant capture
-fn try_get_en_passant_capture(new_board: &mut Board, src: Square) -> Option<LegalMove> {
-    // if move wasn't en passant capture, return
-    let en_passant_target = match new_board.en_passant_target {
-        Some(pos) => pos,
-        None => return None, // no en passant target, thus no en passant capture
-    };
-
-    if !new_board
-        .get_piece_at(en_passant_target)
-        .map(|p| p.0 == PieceType::Pawn)
-        .unwrap_or_default()
-    {
-        return None; // not a pawn move
-    }
-
-    // en passant capture, remove captured pawn
-    let captured_pawn_pos = match new_board.active_player {
-        Color::White => Square(en_passant_target.0, Rank::_5),
-        Color::Black => Square(en_passant_target.0, Rank::_4),
-    };
-    new_board.clear_square(captured_pawn_pos); // remove pawn for subsequent king check in outer function
-                                               //TODO fix this, ugly af, function responsibilities are unclear
-
-    Some(LegalMove::EnPassantCapture {
-        src,
-        dest: en_passant_target,
-    })
 }
 
 fn get_castling_mask(old_board: &Board, src: Square, dest: Square) -> u8 {
@@ -185,17 +140,6 @@ fn get_castling_mask(old_board: &Board, src: Square, dest: Square) -> u8 {
     mask
 }
 
-fn is_double_pawn_push(board: &Board, src: Square, dest: Square) -> bool {
-    if board.get_piece_at(src).unwrap().0 != PieceType::Pawn {
-        return false;
-    }
-    let (home_rank, hop_rank) = match board.active_player {
-        Color::White => (Rank::_2, Rank::_4),
-        Color::Black => (Rank::_7, Rank::_5),
-    };
-    src.1 == home_rank && dest.1 == hop_rank
-}
-
 fn get_normal_legal_move_from_pseudolegal(
     board: &Board,
     src: Square,
@@ -210,42 +154,78 @@ fn get_normal_legal_move_from_pseudolegal(
         return None; // tried to move opponent's piece
     }
 
-    if check_move_blocked(src_piece.0, src, dest, board).is_err() {
+    // cannot move to square occupied by my own piece
+    let dst_piece = board.get_piece_at(dest);
+    if dst_piece.map_or(false, |p| p.1 == board.active_player) {
         return None;
     }
+    let normal_move = || LegalMove::Normal {
+        src,
+        dest,
+        castle_mask: get_castling_mask(board, src, dest),
+        captured_piece: dst_piece.map(|p| p.0),
+    };
+    let legal_move = match src_piece.0 {
+        PieceType::Queen | PieceType::Rook | PieceType::Bishop => {
+            if !is_sliding_path_free(board, src, dest) {
+                return None;
+            }
+            normal_move()
+        }
+        PieceType::Knight | PieceType::King => normal_move(),
+        PieceType::Pawn => {
+            if src.0 != dest.0 {
+                // Diagonal move, dest must contain a piece or be en passant target
+                if board.get_piece_at(dest).is_none() {
+                    // dest is empty, check for en passant
+                    if board.en_passant_target != Some(dest) {
+                        return None; // Invalid move, neither en passant or capture
+                    }
+                    LegalMove::EnPassantCapture { src, dest }
+                } else {
+                    // normal capture
+                    normal_move()
+                }
+            } else {
+                // Forward move, dest must not contain a piece
+                if board.get_piece_at(dest).is_some() {
+                    return None;
+                }
+                if src.1 == board.active_player.pawn_start_rank()
+                    && dest.1 == board.active_player.double_push_rank()
+                {
+                    // double pawn push, check if square in front is occupied
+                    if board
+                        .get_piece_at(Square(src.0, board.active_player.hop_rank()))
+                        .is_some()
+                    {
+                        return None;
+                    }
+                    LegalMove::DoublePawnPush { file: src.0 }
+                } else {
+                    LegalMove::Normal {
+                        src,
+                        dest,
+                        castle_mask: 0,
+                        captured_piece: None,
+                    }
+                }
+            }
+        }
+    };
 
     // carry out move
     // TODO: possible perf optimization - make board mutable and undo to avoid cloning
     let mut new_board = *board;
-    new_board.set_piece_at(dest, src_piece);
-    new_board.clear_square(src);
-
-    let en_passant = try_get_en_passant_capture(&mut new_board, src);
+    new_board.make_move(&legal_move);
+    new_board.active_player = new_board.active_player.opponent(); // undo player switching done by make_move
 
     // check if king in check
     if is_king_in_check(&new_board) {
         return None;
     }
 
-    if en_passant.is_some() {
-        return en_passant;
-    }
-
-    // double pawn push
-
-    if is_double_pawn_push(board, src, dest) {
-        return Some(LegalMove::DoublePawnPush { file: src.0 });
-    }
-
-    let castle_mask = get_castling_mask(board, src, dest);
-    let captured_piece = board.get_piece_at(dest).map(|p| p.0);
-
-    Some(LegalMove::Normal {
-        src,
-        dest,
-        castle_mask,
-        captured_piece,
-    })
+    Some(legal_move)
 }
 
 fn get_promotion_legal_move_from_pseudolegal(
@@ -285,13 +265,10 @@ pub fn can_castle_kingside(board: &Board) -> bool {
         return false;
     }
     let home_rank = board.active_player.home_rank();
-    let (f_square, g_square) = (
-        Square(File::F, home_rank),
-        Square(File::G, home_rank),
-    );
+    let (f_square, g_square) = (Square(File::F, home_rank), Square(File::G, home_rank));
     // F and G square must be empty and not under attack
     if board.get_piece_at(f_square).is_some() || is_square_attacked(board, f_square) {
-        return false; 
+        return false;
     }
     if board.get_piece_at(g_square).is_some() || is_square_attacked(board, g_square) {
         return false; // TODO avoid cloning board, use square attack helper function instead
