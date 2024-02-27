@@ -2,11 +2,14 @@ use std::sync::mpsc;
 
 use rand::Rng;
 
-use crate::{board::{
-    models::{GameState, LegalMove},
-    move_checking::{apply_legal_move, is_king_in_check},
-    Board,
-}, uci::WorkerMessage};
+use crate::{
+    board::{
+        models::{GameState, LegalMove},
+        move_checking::{apply_legal_move, is_king_in_check},
+        Board,
+    },
+    uci::WorkerMessage,
+};
 
 use super::eval::get_material_eval;
 
@@ -116,7 +119,6 @@ fn alpha_beta_max_rec(board: &Board, depth: u32, mut alpha: f32, beta: f32) -> f
     }
     alpha
 }
-
 
 // alpha= minimum guaranteed score for opponent
 // beta= maximum guaranteed score for me

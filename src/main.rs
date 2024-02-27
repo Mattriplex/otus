@@ -6,7 +6,8 @@ use otus::{
         Board,
     },
     players::{ChessPlayer, HumanPlayer, Otus},
-    search::minimax::search_minimax, uci::UciEngine,
+    search::minimax::search_minimax,
+    uci::UciEngine,
 };
 
 fn main() {

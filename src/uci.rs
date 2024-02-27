@@ -1,11 +1,14 @@
 use std::thread;
 
 use crate::{
-    board::{models::{LegalMove, Move}, move_checking::apply_move, Board},
+    board::{
+        models::{LegalMove, Move},
+        move_checking::apply_move,
+        Board,
+    },
     players::ChessPlayer,
     search::{minimax::search_minimax_threaded, perft},
 };
-
 
 pub enum WorkerMessage {
     BestMove(Move),
@@ -28,7 +31,6 @@ fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
 }
 
 impl UciEngine {
-
     pub fn new() -> Self {
         let (tx, _) = std::sync::mpsc::channel();
         Self {
@@ -37,7 +39,6 @@ impl UciEngine {
         }
     }
 
-    
     fn process_position_command(&mut self, arguments: Vec<&str>) {
         if arguments.is_empty() {
             return;
@@ -61,18 +62,16 @@ impl UciEngine {
             }
         }
     }
-    
+
     fn process_go_command(&mut self, _arguments: Vec<&str>) {
         let (tx, rx) = std::sync::mpsc::channel();
         self.tx = tx;
         // TODO parse time control etc
         thread::scope(|s| {
-            s.spawn(|| {
-                search_minimax_threaded(&self.position, 4, rx)
-            });
+            s.spawn(|| search_minimax_threaded(&self.position, 4, rx));
         });
     }
-    
+
     fn process_command(&mut self, command: &str) {
         let tokens: Vec<&str> = command.split_whitespace().collect();
         if tokens.is_empty() {
@@ -97,7 +96,7 @@ impl UciEngine {
             "perft" => {
                 if tokens.len() > 1 {
                     let depth = tokens[1].parse().expect("Invalid depth");
-                    perft::perft(&self.position, depth);
+                    perft::perft(&mut self.position, depth);
                 }
             }
             "stop" => {
@@ -108,7 +107,7 @@ impl UciEngine {
             }
         }
     }
-    
+
     pub fn run(&mut self) {
         loop {
             // commands are separated by a newline
@@ -119,10 +118,7 @@ impl UciEngine {
             }
         }
     }
-
 }
-
-
 
 /*
 Output commands:

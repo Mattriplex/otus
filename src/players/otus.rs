@@ -1,8 +1,5 @@
 use crate::{
-    board::{
-        models::{LegalMove},
-        Board,
-    },
+    board::{models::LegalMove, Board},
     search::minimax::search_minimax,
 };
 

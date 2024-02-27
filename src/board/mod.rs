@@ -3,13 +3,16 @@ use std::fmt::{self, Display};
 use crate::board::models::Piece;
 
 use self::{
-    board_utils::PlayerPieceIter, model_utils::ColorProps, models::{
+    board_utils::PlayerPieceIter,
+    model_utils::ColorProps,
+    models::{
         Color, File, GameState, LegalMove, Move, PieceType, PromotionPieceType, Rank, Square,
-    }, move_checking::{
+    },
+    move_checking::{
         can_castle_kingside, can_castle_queenside, get_legal_move_from_pseudolegal_move,
         is_king_in_check, is_move_legal,
         square_utils::{pos_plus, DirIter, KnightHopIter, RayIter},
-    }
+    },
 };
 
 pub mod board_utils;
@@ -52,6 +55,10 @@ impl Board {
 
     fn set_piece_at(&mut self, pos: Square, piece: Piece) {
         self.squares[pos.1 as usize][pos.0 as usize] = Some(piece);
+    }
+
+    fn set_square(&mut self, pos: Square, piece: Option<Piece>) {
+        self.squares[pos.1 as usize][pos.0 as usize] = piece;
     }
 
     fn clear_square(&mut self, pos: Square) {
@@ -256,6 +263,7 @@ impl Board {
                 promotion: PromotionPieceType::Queen,
             },
         ) {
+            let dst_piece = self.get_piece_at(dest).map(|p| p.0);
             for promotion_piece in [
                 PieceType::Queen,
                 PieceType::Rook,
@@ -267,6 +275,7 @@ impl Board {
                     dest,
                     promotion: promotion_piece,
                     castle_mask,
+                    captured_piece: dst_piece,
                 });
             }
         }
@@ -456,6 +465,7 @@ impl Board {
                 src,
                 dest,
                 castle_mask,
+                ..
             } => {
                 self.move_piece(*src, *dest);
                 self.castling_rights ^= castle_mask;
@@ -465,21 +475,32 @@ impl Board {
                 dest,
                 castle_mask,
                 promotion,
+                ..
             } => {
                 self.set_piece_at(*dest, Piece(*promotion, active_player));
                 self.clear_square(*src);
                 self.castling_rights ^= castle_mask;
             }
-            LegalMove::CastleKingside {
-                castle_mask,
-            } => {
-                self.move_piece(active_player.king_home_square(), Square(File::G, active_player.home_rank()));
-                self.move_piece(Square(File::H, active_player.home_rank()), Square(File::F, active_player.home_rank()));
+            LegalMove::CastleKingside { castle_mask } => {
+                self.move_piece(
+                    active_player.king_home_square(),
+                    Square(File::G, active_player.home_rank()),
+                );
+                self.move_piece(
+                    Square(File::H, active_player.home_rank()),
+                    Square(File::F, active_player.home_rank()),
+                );
                 self.castling_rights ^= castle_mask;
             }
             LegalMove::CastleQueenside { castle_mask } => {
-                self.move_piece(active_player.king_home_square(), Square(File::C, active_player.home_rank()));
-                self.move_piece(Square(File::A, active_player.home_rank()), Square(File::D, active_player.home_rank()));
+                self.move_piece(
+                    active_player.king_home_square(),
+                    Square(File::C, active_player.home_rank()),
+                );
+                self.move_piece(
+                    Square(File::A, active_player.home_rank()),
+                    Square(File::D, active_player.home_rank()),
+                );
                 self.castling_rights ^= castle_mask;
             }
             LegalMove::DoublePawnPush { file, .. } => {
@@ -515,41 +536,67 @@ impl Board {
                 src,
                 dest,
                 castle_mask,
+                captured_piece,
             } => {
-                self.move_piece(*dest, *src);
+                let my_piece = self.get_piece_at(*dest);
+                self.set_square(
+                    *dest,
+                    captured_piece.map(|p| Piece(p, active_player.opponent())),
+                );
+                self.set_square(*src, my_piece);
                 self.castling_rights ^= castle_mask;
             }
             LegalMove::Promotion {
                 src,
                 dest,
                 castle_mask,
+                captured_piece,
                 ..
             } => {
                 self.set_piece_at(*src, Piece(PieceType::Pawn, active_player));
-                self.clear_square(*dest);
+                self.set_square(
+                    *dest,
+                    captured_piece.map(|p| Piece(p, active_player.opponent())),
+                );
                 self.castling_rights ^= castle_mask;
             }
-            LegalMove::CastleKingside {
-                castle_mask,
-            } => {
-                self.move_piece(Square(File::G, active_player.home_rank()), active_player.king_home_square());
-                self.move_piece(Square(File::F, active_player.home_rank()), Square(File::H, active_player.home_rank()));
+            LegalMove::CastleKingside { castle_mask } => {
+                self.move_piece(
+                    Square(File::G, active_player.home_rank()),
+                    active_player.king_home_square(),
+                );
+                self.move_piece(
+                    Square(File::F, active_player.home_rank()),
+                    Square(File::H, active_player.home_rank()),
+                );
                 self.castling_rights ^= castle_mask;
             }
             LegalMove::CastleQueenside { castle_mask } => {
-                self.move_piece(Square(File::C, active_player.home_rank()), active_player.king_home_square());
-                self.move_piece(Square(File::D, active_player.home_rank()), Square(File::A, active_player.home_rank()));
+                self.move_piece(
+                    Square(File::C, active_player.home_rank()),
+                    active_player.king_home_square(),
+                );
+                self.move_piece(
+                    Square(File::D, active_player.home_rank()),
+                    Square(File::A, active_player.home_rank()),
+                );
                 self.castling_rights ^= castle_mask;
             }
             LegalMove::DoublePawnPush { file } => {
-                self.set_piece_at(Square(*file, active_player.pawn_start_rank()), Piece(PieceType::Pawn, self.active_player));
+                self.set_piece_at(
+                    Square(*file, active_player.pawn_start_rank()),
+                    Piece(PieceType::Pawn, self.active_player),
+                );
                 self.clear_square(Square(*file, active_player.double_push_rank()));
-            },
+            }
             LegalMove::EnPassantCapture { src, dest } => {
                 self.set_piece_at(*src, self.get_piece_at(*dest).unwrap());
                 self.clear_square(*dest);
                 // put back the captured pawn
-                self.set_piece_at(Square(dest.0, active_player.opponent().double_push_rank()), Piece(PieceType::Pawn, active_player.opponent()));
+                self.set_piece_at(
+                    Square(dest.0, active_player.opponent().double_push_rank()),
+                    Piece(PieceType::Pawn, active_player.opponent()),
+                );
             }
         }
     }

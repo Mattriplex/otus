@@ -1,9 +1,6 @@
 use rand::Rng;
 
-use crate::board::{
-    models::{LegalMove},
-    Board,
-};
+use crate::board::{models::LegalMove, Board};
 
 use super::{ChessPlayer, RandomPlayer};
 

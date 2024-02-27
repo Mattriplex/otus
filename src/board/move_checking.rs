@@ -9,8 +9,9 @@ use self::square_utils::{
 };
 
 use super::{
-    model_utils::{ColorProps, PromotionToPiece}, models::LegalMove, Color, File, Piece, PieceType, PromotionPieceType,
-    Rank, Square,
+    model_utils::{ColorProps, PromotionToPiece},
+    models::LegalMove,
+    Color, File, Piece, PieceType, PromotionPieceType, Rank, Square,
 };
 
 fn check_move_blocked(
@@ -35,7 +36,10 @@ fn check_move_blocked(
 
     if piece == PieceType::Pawn {
         // If moving sideways, must capture a piece (special case: en passant)
-        if src.0 != dest.0 && board.get_piece_at(dest).is_none() && board.en_passant_target != Some(dest) {
+        if src.0 != dest.0
+            && board.get_piece_at(dest).is_none()
+            && board.en_passant_target != Some(dest)
+        {
             return Err("Pawn cannot move sideways without capturing".to_string());
         }
         // If moving forward, must not be blocked
@@ -57,7 +61,16 @@ fn check_move_blocked(
 
 fn seek_king(board: &Board, color: Color) -> Option<Square> {
     // search home row first, king is most likely there
-    for rank in [color.home_rank(), Rank::_2, Rank::_7, Rank::_3, Rank::_4, Rank::_5, Rank::_6, color.opp_home_rank()] {
+    for rank in [
+        color.home_rank(),
+        Rank::_2,
+        Rank::_7,
+        Rank::_3,
+        Rank::_4,
+        Rank::_5,
+        Rank::_6,
+        color.opp_home_rank(),
+    ] {
         for file in 0..8 {
             let pos = Square(File::from_i8(file).unwrap(), rank);
             if let Some(Piece(PieceType::King, c)) = board.get_piece_at(pos) {
@@ -182,7 +195,10 @@ fn try_get_en_passant_capture(new_board: &mut Board, src: Square) -> Option<Lega
     new_board.clear_square(captured_pawn_pos); // remove pawn for subsequent king check in outer function
                                                //TODO fix this, ugly af, function responsibilities are unclear
 
-    Some(LegalMove::EnPassantCapture { src, dest: en_passant_target })
+    Some(LegalMove::EnPassantCapture {
+        src,
+        dest: en_passant_target,
+    })
 }
 
 fn get_castling_mask(old_board: &Board, src: Square, dest: Square) -> u8 {
@@ -289,12 +305,14 @@ fn get_normal_legal_move_from_pseudolegal(
         return Some(LegalMove::DoublePawnPush { file: src.0 });
     }
 
-    let castling_mask = get_castling_mask(board, src, dest);
+    let castle_mask = get_castling_mask(board, src, dest);
+    let captured_piece = board.get_piece_at(dest).map(|p| p.0);
 
     Some(LegalMove::Normal {
         src,
         dest,
-        castle_mask: castling_mask,
+        castle_mask,
+        captured_piece,
     })
 }
 
@@ -304,15 +322,21 @@ fn get_promotion_legal_move_from_pseudolegal(
     dest: Square,
     promotion: PromotionPieceType,
 ) -> Option<LegalMove> {
-    let castlemask = match get_normal_legal_move_from_pseudolegal(board, src, dest) {
-        Some(LegalMove::Normal { castle_mask, .. }) => castle_mask,
-        _ => return None, // move is not legal
-    };
+    let (castle_mask, captured_piece) =
+        match get_normal_legal_move_from_pseudolegal(board, src, dest) {
+            Some(LegalMove::Normal {
+                castle_mask,
+                captured_piece,
+                ..
+            }) => (castle_mask, captured_piece),
+            _ => return None, // move is not legal
+        };
     Some(LegalMove::Promotion {
         src,
         dest,
-        castle_mask: castlemask,
+        castle_mask,
         promotion: promotion.to_piece(),
+        captured_piece,
     })
 }
 
@@ -419,14 +443,18 @@ pub fn get_legal_move_from_move(board: &Board, move_: &Move) -> Option<LegalMove
         }
         Move::CastleKingside { .. } => {
             if can_castle_kingside(board) {
-                Some(LegalMove::CastleKingside { castle_mask: board.castling_rights & board.active_player.castle_bit_mask() })
+                Some(LegalMove::CastleKingside {
+                    castle_mask: board.castling_rights & board.active_player.castle_bit_mask(),
+                })
             } else {
                 None
             }
         }
         Move::CastleQueenside { .. } => {
             if can_castle_queenside(board) {
-                Some(LegalMove::CastleQueenside { castle_mask: board.castling_rights & board.active_player.castle_bit_mask() })
+                Some(LegalMove::CastleQueenside {
+                    castle_mask: board.castling_rights & board.active_player.castle_bit_mask(),
+                })
             } else {
                 None
             }
@@ -456,14 +484,18 @@ pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Opti
         }
         Move::CastleKingside { .. } => {
             if can_castle_kingside(board) {
-                Some(LegalMove::CastleKingside { castle_mask: board.castling_rights & board.active_player.castle_bit_mask() })
+                Some(LegalMove::CastleKingside {
+                    castle_mask: board.castling_rights & board.active_player.castle_bit_mask(),
+                })
             } else {
                 None
             }
         }
         Move::CastleQueenside { .. } => {
             if can_castle_queenside(board) {
-                Some(LegalMove::CastleQueenside { castle_mask: board.castling_rights & board.active_player.castle_bit_mask() })
+                Some(LegalMove::CastleQueenside {
+                    castle_mask: board.castling_rights & board.active_player.castle_bit_mask(),
+                })
             } else {
                 None
             }
@@ -489,7 +521,6 @@ pub fn make_move(board: &mut Board, move_: &Move) -> Result<Board, String> {
         None => Err("Move is not legal".to_string()),
     }
 }
-
 
 pub fn apply_legal_move(board: &Board, move_: &LegalMove) -> Board {
     let mut new_board = *board;

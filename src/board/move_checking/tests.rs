@@ -39,10 +39,7 @@ fn test_cannot_move_opponents_piece(#[case] player: Color) {
     let mut board = Board::empty();
     board.active_player = player;
     board.set_piece_at(E2, Piece(PieceType::Queen, player.opponent()));
-    let move_ = Move::Normal {
-        src: E2,
-        dest: E4,
-    };
+    let move_ = Move::Normal { src: E2, dest: E4 };
 
     assert!(!is_move_legal(&board, &move_));
 }
@@ -54,10 +51,7 @@ fn test_cannot_move_to_same_square(#[case] player: Color) {
     let mut board = Board::empty();
     board.active_player = player;
     board.set_piece_at(E2, Piece(PieceType::Queen, player));
-    let move_ = Move::Normal {
-        src: E2,
-        dest: E2,
-    };
+    let move_ = Move::Normal { src: E2, dest: E2 };
 
     assert!(!is_move_legal(&board, &move_));
 }
@@ -68,10 +62,7 @@ fn test_cannot_move_to_same_square(#[case] player: Color) {
 fn test_cannot_move_from_empty_square(#[case] player: Color) {
     let mut board = Board::empty();
     board.active_player = player;
-    let move_ = Move::Normal {
-        src: E2,
-        dest: E3,
-    };
+    let move_ = Move::Normal { src: E2, dest: E3 };
 
     assert!(!is_move_legal(&board, &move_));
 }
@@ -84,10 +75,7 @@ fn test_cannot_capture_own_piece(#[case] player: Color) {
     board.active_player = player;
     board.set_piece_at(E2, Piece(PieceType::Queen, player));
     board.set_piece_at(E3, Piece(PieceType::Queen, player));
-    let move_ = Move::Normal {
-        src: E2,
-        dest: E3,
-    };
+    let move_ = Move::Normal { src: E2, dest: E3 };
 
     assert!(!is_move_legal(&board, &move_));
 }
@@ -236,10 +224,7 @@ fn test_en_passant_target() {
     let mut board = Board::empty();
     board.active_player = White;
     board.set_piece_at(A2, Piece(PieceType::Pawn, White));
-    let move_ = Move::Normal {
-        src: A2,
-        dest: A4,
-    };
+    let move_ = Move::Normal { src: A2, dest: A4 };
 
     let result = apply_move(&board, &move_).unwrap();
 
@@ -273,10 +258,7 @@ fn test_invalid_en_passant() {
     board.en_passant_target = None;
     board.set_piece_at(D5, Piece(PieceType::Pawn, Black));
     board.set_piece_at(E5, Piece(PieceType::Pawn, White));
-    let move_ = Move::Normal {
-        src: E5,
-        dest: D6,
-    };
+    let move_ = Move::Normal { src: E5, dest: D6 };
 
     assert!(!is_move_legal(&board, &move_));
 }
@@ -388,10 +370,7 @@ fn test_must_not_move_king_into_check() {
     let mut board = Board::empty();
     board.set_piece_at(E1, Piece(PieceType::King, White));
     board.set_piece_at(F8, Piece(PieceType::Rook, Black));
-    let move_ = Move::Normal {
-        src: E1,
-        dest: F2,
-    };
+    let move_ = Move::Normal { src: E1, dest: F2 };
 
     assert!(!is_move_legal(&board, &move_));
 }
@@ -402,10 +381,7 @@ fn test_must_not_leave_king_in_check() {
     board.set_piece_at(E1, Piece(PieceType::King, White));
     board.set_piece_at(E8, Piece(PieceType::Rook, Black));
     board.set_piece_at(G2, Piece(PieceType::Bishop, White));
-    let move_ = Move::Normal {
-        src: G2,
-        dest: F3,
-    };
+    let move_ = Move::Normal { src: G2, dest: F3 };
 
     assert!(!is_move_legal(&board, &move_));
 }
@@ -416,10 +392,7 @@ fn test_must_not_put_king_in_check() {
     board.set_piece_at(E1, Piece(PieceType::King, White));
     board.set_piece_at(E8, Piece(PieceType::Rook, Black));
     board.set_piece_at(E4, Piece(PieceType::Bishop, White));
-    let move_ = Move::Normal {
-        src: E4,
-        dest: F3,
-    };
+    let move_ = Move::Normal { src: E4, dest: F3 };
 
     assert!(!is_move_legal(&board, &move_));
 }
@@ -433,10 +406,7 @@ fn test_en_passant_must_not_put_king_in_check() {
     board.set_piece_at(C5, Piece(PieceType::Pawn, White));
     board.set_piece_at(B5, Piece(PieceType::Rook, Black));
     board.en_passant_target = Some(Square(D, _6));
-    let move_ = Move::Normal {
-        src: C5,
-        dest: D6,
-    };
+    let move_ = Move::Normal { src: C5, dest: D6 };
 
     assert!(!is_move_legal(&board, &move_));
 }

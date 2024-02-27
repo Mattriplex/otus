@@ -2,7 +2,7 @@ use tests::move_checking::get_legal_move_from_move;
 
 use crate::{board::*, search::perft::perft};
 
-use self::move_checking::{apply_legal_move};
+use self::move_checking::apply_legal_move;
 
 #[test]
 fn test_fen_default_board() {
@@ -203,56 +203,57 @@ fn perft(board: &Board, depth: u8) -> u64 {
 
 #[test]
 fn test_perf_starting_pos() {
-    let board = Board::default();
-    let count = perft(&board, 4);
+    let mut board = Board::default();
+    let count = perft(&mut board, 4);
 
     assert_eq!(count, 197281);
 }
 
 #[test]
 fn test_perf_kiwipete() {
-    let board =
+    let mut board =
         Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
             .unwrap();
 
-    assert_eq!(perft(&board, 3), 97862);
+    assert_eq!(perft(&mut board, 3), 97862);
 }
 
 #[test]
 fn test_perf_3() {
-    let board = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
+    let mut board = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
 
-    assert_eq!(perft(&board, 1), 14);
-    assert_eq!(perft(&board, 2), 191);
-    assert_eq!(perft(&board, 3), 2812);
-    assert_eq!(perft(&board, 4), 43238);
+    assert_eq!(perft(&mut board, 1), 14);
+    assert_eq!(perft(&mut board, 2), 191);
+    assert_eq!(perft(&mut board, 3), 2812);
+    assert_eq!(perft(&mut board, 4), 43238);
 }
 
 #[test]
 fn test_perf_4() {
-    let board = Board::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1")
-        .unwrap();
+    let mut board =
+        Board::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1")
+            .unwrap();
 
-    assert_eq!(perft(&board, 1), 6);
-    assert_eq!(perft(&board, 2), 264);
-    assert_eq!(perft(&board, 3), 9467);
+    assert_eq!(perft(&mut board, 1), 6);
+    assert_eq!(perft(&mut board, 2), 264);
+    assert_eq!(perft(&mut board, 3), 9467);
 }
 
 #[test]
 fn test_perf_5() {
-    let board =
+    let mut board =
         Board::from_fen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8 ").unwrap();
 
-    assert_eq!(perft(&board, 3), 62379);
+    assert_eq!(perft(&mut board, 3), 62379);
 }
 
 #[test]
 fn test_perf_6() {
-    let board =
+    let mut board =
         Board::from_fen("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10")
             .unwrap();
 
-    assert_eq!(perft(&board, 3), 89890);
+    assert_eq!(perft(&mut board, 3), 89890);
 }
 
 #[test]
@@ -283,4 +284,36 @@ fn test_queen_promotion() {
         get_legal_move_from_move(&board, &Move::from_uci_string(&board, "b2a1q").unwrap()).unwrap();
 
     assert!(board.get_legal_moves().contains(&mv));
+}
+
+#[test]
+pub fn test_revert_perft() {
+    let mut board = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
+    let initial_fen = board.to_fen();
+    for mv in board.get_legal_moves() {
+        let en_passant_target = board.en_passant_target;
+        board.make_move(&mv);
+        perft_rec(&mut board, 1);
+        board.unmake_move(&mv);
+        board.en_passant_target = en_passant_target; // TODO make unmake move do this
+        assert_eq!(board.to_fen(), initial_fen);
+    }
+}
+
+fn perft_rec(board: &mut Board, depth: i8) -> u64 {
+    if depth == 0 {
+        return 1;
+    }
+    let initial_fen = board.to_fen();
+    let mut count = 0;
+    for mv in board.get_legal_moves() {
+        let en_passant_target = board.en_passant_target;
+        board.make_move(&mv);
+        let new_positions = perft_rec(board, depth - 1);
+        count += new_positions;
+        board.unmake_move(&mv);
+        board.en_passant_target = en_passant_target;
+        assert_eq!(board.to_fen(), initial_fen);
+    }
+    count
 }

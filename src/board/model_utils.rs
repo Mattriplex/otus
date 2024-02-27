@@ -292,8 +292,8 @@ impl LegalMove {
                 src: *src,
                 dest: *dest,
             },
-            LegalMove::CastleKingside {.. } => Move::CastleKingside,
-            LegalMove::CastleQueenside {.. } => Move::CastleQueenside,
+            LegalMove::CastleKingside { .. } => Move::CastleKingside,
+            LegalMove::CastleQueenside { .. } => Move::CastleQueenside,
             LegalMove::Promotion {
                 src,
                 dest,
@@ -322,19 +322,18 @@ impl LegalMove {
     }
 }
 
-
 pub trait PromotionToPiece {
     fn to_piece(&self) -> PieceType;
 }
 
 impl PromotionToPiece for PromotionPieceType {
     fn to_piece(&self) -> PieceType {
-            match self {
-                PromotionPieceType::Knight => PieceType::Knight,
-                PromotionPieceType::Bishop => PieceType::Bishop,
-                PromotionPieceType::Rook => PieceType::Rook,
-                PromotionPieceType::Queen => PieceType::Queen,
-            }
+        match self {
+            PromotionPieceType::Knight => PieceType::Knight,
+            PromotionPieceType::Bishop => PieceType::Bishop,
+            PromotionPieceType::Rook => PieceType::Rook,
+            PromotionPieceType::Queen => PieceType::Queen,
+        }
     }
 }
 
