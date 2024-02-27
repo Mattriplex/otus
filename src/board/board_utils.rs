@@ -1,6 +1,6 @@
 use super::{
     models::{Color, Piece, PieceType, Square},
-    move_checking::square_utils::{pos_plus, DirIter, KnightHopIter, SquareIter},
+    move_checking::square_utils::{pos_plus, DirIter, KnightHopIter, RayIter, SquareIter},
     Board,
 };
 
@@ -50,7 +50,7 @@ pub fn is_square_attacked(board: &Board, target: Square) -> bool {
 
     // diagonal moves
     for dir in DirIter::bishop() {
-        let mut pos = match pos_plus(target, dir) {
+        let pos = match pos_plus(target, dir) {
             Some(pos) => pos,
             None => continue,
         };
@@ -69,11 +69,7 @@ pub fn is_square_attacked(board: &Board, target: Square) -> bool {
             }
             // cast ray to detect distant attackers
         };
-        loop {
-            pos = match pos_plus(pos, dir) {
-                Some(pos) => pos,
-                None => break,
-            };
+        for pos in RayIter::new(pos, dir) {
             if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
                 if owner == active_player {
                     break; //attacks blocked by friendly piece
@@ -89,7 +85,7 @@ pub fn is_square_attacked(board: &Board, target: Square) -> bool {
 
     // horizontal and vertical moves
     for dir in DirIter::rook() {
-        let mut pos = match pos_plus(target, dir) {
+        let pos = match pos_plus(target, dir) {
             Some(pos) => pos,
             None => continue,
         };
@@ -105,11 +101,7 @@ pub fn is_square_attacked(board: &Board, target: Square) -> bool {
             }
             // cast ray to detect distant attackers
         };
-        loop {
-            pos = match pos_plus(pos, dir) {
-                Some(pos) => pos,
-                None => break,
-            };
+        for pos in RayIter::new(pos, dir) {
             if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
                 if owner == active_player {
                     break; //attacks blocked by friendly piece
