@@ -118,7 +118,7 @@ pub fn smart_eval(board: &Board) -> f32 {
     for sq in SquareIter::new() {
         if let Some(Piece(piece, owner)) = board.get_piece_at(sq) {
             let value = match piece {
-                PieceType::Pawn => get_pawn_value(sq, board.active_player),
+                PieceType::Pawn => get_pawn_value(sq, owner),
                 PieceType::Knight => get_knight_value(sq),
                 PieceType::Bishop => 310.0,
                 PieceType::Rook => 500.0,

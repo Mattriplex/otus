@@ -7,7 +7,7 @@ use crate::{
         Board,
     },
     players::ChessPlayer,
-    search::{minimax::search_minimax_threaded, perft},
+    search::{eval::smart_eval, minimax::search_minimax_threaded, perft},
 };
 
 pub enum WorkerMessage {
@@ -68,7 +68,7 @@ impl UciEngine {
         self.tx = tx;
         // TODO parse time control etc
         thread::scope(|s| {
-            s.spawn(|| search_minimax_threaded(&self.position, 5, rx));
+            s.spawn(|| search_minimax_threaded(&self.position, 5, smart_eval, rx));
         });
     }
 

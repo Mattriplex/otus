@@ -18,13 +18,13 @@ fn get_noise() -> f32 {
     rng.gen_range(-0.1..0.1)
 }
 
-pub fn search_minimax(board: &Board, depth: u32) -> LegalMove {
+pub fn search_minimax(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32) -> LegalMove {
     let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
     let mut best_move = moves[0].clone();
     let mut best_score = f32::MIN;
     for move_ in moves {
         let new_board = apply_legal_move(board, &move_);
-        let score = -nega_max(&new_board, depth - 1) + get_noise(); // add noise to shuffle moves of equal value
+        let score = -nega_max(&new_board, depth - 1, eval_fn) + get_noise(); // add noise to shuffle moves of equal value
         if score > best_score {
             best_score = score;
             best_move = move_;
@@ -33,13 +33,13 @@ pub fn search_minimax(board: &Board, depth: u32) -> LegalMove {
     best_move
 }
 
-pub fn search_minimax_threaded(board: &Board, depth: u32, rx: mpsc::Receiver<()>) {
+pub fn search_minimax_threaded(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32, rx: mpsc::Receiver<()>) {
     let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
     let mut best_move = moves[0].clone();
     let mut best_score = f32::MIN;
     for move_ in moves {
         let new_board = apply_legal_move(&board, &move_);
-        let score = -nega_max(&new_board, depth - 1) + get_noise(); // add noise to shuffle moves of equal value
+        let score = -nega_max(&new_board, depth - 1, eval_fn) + get_noise(); // add noise to shuffle moves of equal value
         if score > best_score {
             best_score = score;
             best_move = move_;
@@ -51,12 +51,12 @@ pub fn search_minimax_threaded(board: &Board, depth: u32, rx: mpsc::Receiver<()>
     println!("bestmove {}", best_move.to_move(board))
 }
 
-fn nega_max(board: &Board, depth: u32) -> f32 {
+fn nega_max(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32) -> f32 {
     if depth == 0 {
         match board.get_gamestate() {
             GameState::Mated(_) => return f32::MIN,
             GameState::Stalemate => return 0.0,
-            GameState::InProgress => return get_material_eval(board),
+            GameState::InProgress => return eval_fn(board),
         }
     }
     let moves = board.get_legal_moves(); // Avoid calling get_gamestate because it would duplicate work from get_legal_moves()
@@ -70,7 +70,7 @@ fn nega_max(board: &Board, depth: u32) -> f32 {
     let mut best_score = f32::MIN; // if no legal moves, return worst possible score TODO fix this for stalemate
     for move_ in moves {
         let new_board = apply_legal_move(board, &move_);
-        let score = -nega_max(&new_board, depth - 1);
+        let score = -nega_max(&new_board, depth - 1, eval_fn);
         if score > best_score {
             best_score = score;
         }

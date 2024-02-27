@@ -6,7 +6,7 @@ use otus::{
         Board,
     },
     players::{ChessPlayer, HumanPlayer, Otus},
-    search::minimax::search_minimax,
+    search::{eval::smart_eval, minimax::search_minimax},
     uci::UciEngine,
 };
 
@@ -19,7 +19,7 @@ fn main() {
             }
             "perftest" => {
                 let board = Board::default();
-                println!("{}", search_minimax(&board, 6).to_move(&board));
+                println!("{}", search_minimax(&board, 5, smart_eval).to_move(&board));
             }
             _ => println!("Invalid argument"),
         }
