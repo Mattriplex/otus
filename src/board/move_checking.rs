@@ -13,23 +13,6 @@ use super::{
     Color, File, Piece, PieceType, PromotionPieceType, Rank, Square,
 };
 
-fn player_owns_src_but_not_dest(
-    piece: PieceType,
-    src: Square,
-    dest: Square,
-    board: &Board,
-) -> bool {
-    // All pieces: cannot move to a square occupied by a piece of the same color
-    // this also filters null moves (src == dest)
-    if board
-        .get_piece_at(dest)
-        .map_or(false, |p| p.1 == board.active_player)
-    {
-        return false;
-    }
-    true
-}
-
 // To be used with bishop, rook, queen
 // returns true if squares between src and dest are free of pieces (exclusive)
 fn is_sliding_path_free(board: &Board, src: Square, dest: Square) -> bool {
