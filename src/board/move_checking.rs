@@ -279,37 +279,22 @@ pub fn can_castle_kingside(board: &Board) -> bool {
         return false;
     }
     // must not be in check
-    if is_king_in_check(board) {
+    // we know king is on home square because castling rights are intact
+    // using is_square attacked instead of is_king_in_check to save a call to seek_king
+    if is_square_attacked(board, board.active_player.king_home_square()) {
         return false;
     }
-    let home_rank = match board.active_player {
-        Color::White => Rank::_1,
-        Color::Black => Rank::_8,
-    };
-    let (king_pos, f_square, g_square, _rook_pos) = (
-        Square(File::E, home_rank),
+    let home_rank = board.active_player.home_rank();
+    let (f_square, g_square) = (
         Square(File::F, home_rank),
         Square(File::G, home_rank),
-        Square(File::H, home_rank),
     );
-    let mut new_board = *board;
-    new_board.clear_square(king_pos);
-    // F square must be empty and not under attack
-    if board.get_piece_at(f_square).is_some() {
-        return false;
+    // F and G square must be empty and not under attack
+    if board.get_piece_at(f_square).is_some() || is_square_attacked(board, f_square) {
+        return false; 
     }
-    new_board.set_piece_at(f_square, Piece(PieceType::King, board.active_player));
-    if is_king_in_check(&new_board) {
-        return false;
-    }
-    new_board.clear_square(f_square);
-    // G square must be empty and not under attack
-    if board.get_piece_at(g_square).is_some() {
+    if board.get_piece_at(g_square).is_some() || is_square_attacked(board, g_square) {
         return false; // TODO avoid cloning board, use square attack helper function instead
-    }
-    new_board.set_piece_at(g_square, Piece(PieceType::King, board.active_player));
-    if is_king_in_check(&new_board) {
-        return false;
     }
     true
 }
@@ -320,38 +305,27 @@ pub fn can_castle_queenside(board: &Board) -> bool {
         return false;
     }
     // must not be in check
-    if is_king_in_check(board) {
+    // we know king is on home square because castling rights are intact
+    // using is_square attacked instead of is_king_in_check to save a call to seek_king    if is_king_in_check(board) {
+    if is_square_attacked(board, board.active_player.king_home_square()) {
         return false;
     }
-    let home_rank = match board.active_player {
-        Color::White => Rank::_1,
-        Color::Black => Rank::_8,
-    };
-    let (king_pos, d_square, c_square, b_square) = (
-        Square(File::E, home_rank),
+    let home_rank = board.active_player.home_rank();
+    let (d_square, c_square, b_square) = (
         Square(File::D, home_rank),
         Square(File::C, home_rank),
         Square(File::B, home_rank),
     );
-    let mut new_board = *board;
-    new_board.clear_square(king_pos);
+
     // D square must be empty and not under attack
-    if board.get_piece_at(d_square).is_some() {
+    if board.get_piece_at(d_square).is_some() || is_square_attacked(board, d_square) {
         return false;
     }
-    new_board.set_piece_at(d_square, Piece(PieceType::King, board.active_player));
-    if is_king_in_check(&new_board) {
-        return false;
-    }
-    new_board.clear_square(d_square);
     // C square must be empty and not under attack
-    if board.get_piece_at(c_square).is_some() {
+    if board.get_piece_at(c_square).is_some() || is_square_attacked(board, c_square) {
         return false;
     }
-    new_board.set_piece_at(c_square, Piece(PieceType::King, board.active_player));
-    if is_king_in_check(&new_board) {
-        return false;
-    }
+    // B sqare must be empty
     if board.get_piece_at(b_square).is_some() {
         return false;
     }
@@ -443,14 +417,6 @@ pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Opti
                 None
             }
         }
-    }
-}
-
-// make move, mutates board
-pub fn make_move(board: &mut Board, move_: &Move) -> Result<Board, String> {
-    match get_legal_move_from_move(board, move_) {
-        Some(legal_move) => Ok(apply_legal_move(board, &legal_move)),
-        None => Err("Move is not legal".to_string()),
     }
 }
 
