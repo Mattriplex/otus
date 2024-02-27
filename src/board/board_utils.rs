@@ -1,6 +1,6 @@
 use super::{
     models::{Color, Piece, PieceType, Square},
-    move_checking::square_utils::{pos_plus, DirIter, SquareIter},
+    move_checking::square_utils::{pos_plus, DirIter, KnightHopIter, SquareIter},
     Board,
 };
 
@@ -41,6 +41,7 @@ impl<'a> Iterator for PlayerPieceIter<'a> {
 
 // Is square under attack from opponent of active player
 pub fn is_square_attacked(board: &Board, target: Square) -> bool {
+    let active_player = board.active_player;
     let pawn_dir = match board.active_player {
         Color::White => 1,
         Color::Black => -1,
@@ -49,12 +50,12 @@ pub fn is_square_attacked(board: &Board, target: Square) -> bool {
 
     // diagonal moves
     for dir in DirIter::bishop() {
-        let pos = match pos_plus(target, dir) {
+        let mut pos = match pos_plus(target, dir) {
             Some(pos) => pos,
             None => continue,
         };
         if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
-            if owner == board.active_player {
+            if owner == active_player {
                 continue; //this direction is safe, attacks blocked by friendly piece
             }
             if pawn_attack_dirs.contains(&dir) && piece == PieceType::Pawn {
@@ -68,9 +69,13 @@ pub fn is_square_attacked(board: &Board, target: Square) -> bool {
             }
             // cast ray to detect distant attackers
         };
-        while let Some(pos) = pos_plus(pos, dir) {
+        loop {
+            pos = match pos_plus(pos, dir) {
+                Some(pos) => pos,
+                None => break,
+            };
             if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
-                if owner == board.active_player {
+                if owner == active_player {
                     break; //attacks blocked by friendly piece
                 }
                 match piece {
@@ -84,12 +89,12 @@ pub fn is_square_attacked(board: &Board, target: Square) -> bool {
 
     // horizontal and vertical moves
     for dir in DirIter::rook() {
-        let pos = match pos_plus(target, dir) {
+        let mut pos = match pos_plus(target, dir) {
             Some(pos) => pos,
             None => continue,
         };
         if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
-            if owner == board.active_player {
+            if owner == active_player {
                 continue; //this direction is safe, attacks blocked by friendly piece
             }
             match piece {
@@ -100,9 +105,13 @@ pub fn is_square_attacked(board: &Board, target: Square) -> bool {
             }
             // cast ray to detect distant attackers
         };
-        while let Some(pos) = pos_plus(pos, dir) {
+        loop {
+            pos = match pos_plus(pos, dir) {
+                Some(pos) => pos,
+                None => break,
+            };
             if let Some(Piece(piece, owner)) = board.get_piece_at(pos) {
-                if owner == board.active_player {
+                if owner == active_player {
                     break; //attacks blocked by friendly piece
                 }
                 match piece {
@@ -110,6 +119,15 @@ pub fn is_square_attacked(board: &Board, target: Square) -> bool {
                     PieceType::Queen => return true,
                     _ => break, // enemy piece blocks sliding attacks
                 }
+            }
+        }
+    }
+
+    // knight moves
+    for pos in KnightHopIter::new(target) {
+        if let Some(Piece(PieceType::Knight, owner)) = board.get_piece_at(pos) {
+            if owner != active_player {
+                return true;
             }
         }
     }

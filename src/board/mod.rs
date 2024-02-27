@@ -32,15 +32,6 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn empty() -> Board {
-        Board {
-            squares: [[None; 8]; 8],
-            active_player: Color::White,
-            castling_rights: 0,
-            en_passant_target: None,
-        }
-    }
-
     pub fn default() -> Board {
         Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }

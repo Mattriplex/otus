@@ -9,9 +9,7 @@ use self::square_utils::{
 };
 
 use super::{
-    model_utils::{ColorProps, PromotionToPiece},
-    models::LegalMove,
-    Color, File, Piece, PieceType, PromotionPieceType, Rank, Square,
+    board_utils::is_square_attacked, model_utils::{ColorProps, PromotionToPiece}, models::LegalMove, Color, File, Piece, PieceType, PromotionPieceType, Rank, Square
 };
 
 fn check_move_blocked(
@@ -59,7 +57,7 @@ fn check_move_blocked(
     Ok(())
 }
 
-fn seek_king(board: &Board, color: Color) -> Option<Square> {
+fn seek_king(board: &Board, color: Color) -> Square {
     // search home row first, king is most likely there
     for rank in [
         color.home_rank(),
@@ -75,84 +73,18 @@ fn seek_king(board: &Board, color: Color) -> Option<Square> {
             let pos = Square(File::from_i8(file).unwrap(), rank);
             if let Some(Piece(PieceType::King, c)) = board.get_piece_at(pos) {
                 if c == color {
-                    return Some(pos);
+                    return pos;
                 }
             }
         }
     }
-    None
+    unreachable!("No king on the board");
 }
 
 // new_board: Move is already carried out, but active player is not switched
 pub fn is_king_in_check(new_board: &Board) -> bool {
-    let king_pos = match seek_king(new_board, new_board.active_player) {
-        Some(pos) => pos,
-        None => return false, // no king on the board
-    };
-
-    // check for pawn checks
-    let pawn_dir = match new_board.active_player {
-        Color::White => 1,
-        Color::Black => -1,
-    };
-    for pos in [(1, pawn_dir), (-1, pawn_dir)]
-        .iter()
-        .filter_map(|step| pos_plus(king_pos, *step))
-    {
-        if let Some(Piece(PieceType::Pawn, color)) = new_board.get_piece_at(pos) {
-            if color != new_board.active_player {
-                return true;
-            }
-        }
-    }
-
-    // cast rays from king to check for threats
-    for dir in DirIter::rook() {
-        for pos in RayIter::new(king_pos, dir) {
-            if let Some(Piece(piece, color)) = new_board.get_piece_at(pos) {
-                let is_rook_or_queen = piece == PieceType::Rook || piece == PieceType::Queen;
-                if color == new_board.active_player || !is_rook_or_queen {
-                    break;
-                }
-                if is_rook_or_queen {
-                    return true;
-                }
-            }
-        }
-    }
-    for dir in DirIter::bishop() {
-        for pos in RayIter::new(king_pos, dir) {
-            if let Some(Piece(piece, color)) = new_board.get_piece_at(pos) {
-                let is_bishop_or_queen = piece == PieceType::Bishop || piece == PieceType::Queen;
-                if color == new_board.active_player || !is_bishop_or_queen {
-                    break;
-                }
-                if is_bishop_or_queen {
-                    return true;
-                }
-            }
-        }
-    }
-
-    // check king moves
-    for pos in DirIter::all().filter_map(|dir| pos_plus(king_pos, dir)) {
-        if let Some(Piece(PieceType::King, color)) = new_board.get_piece_at(pos) {
-            if color != new_board.active_player {
-                return true;
-            }
-        }
-    }
-
-    // check knight moves
-    for pos in KnightHopIter::new(king_pos) {
-        if let Some(Piece(PieceType::Knight, color)) = new_board.get_piece_at(pos) {
-            if color != new_board.active_player {
-                return true;
-            }
-        }
-    }
-
-    false
+    let king_pos = seek_king(new_board, new_board.active_player);
+    is_square_attacked(new_board, king_pos)
 }
 
 // this function does not check if the pawn belongs to the active player, handle_normal_move does that
