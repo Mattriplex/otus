@@ -1,6 +1,7 @@
+use rstest::rstest;
 use tests::move_checking::get_legal_move_from_move;
 
-use crate::{board::*, search::perft::perft};
+use crate::{board::*, search::perft::{self, perft}};
 
 use self::move_checking::apply_legal_move;
 
@@ -286,14 +287,15 @@ fn test_queen_promotion() {
     assert!(board.get_legal_moves().contains(&mv));
 }
 
-#[test]
-pub fn test_revert_perft() {
-    let mut board = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
+#[rstest]
+#[case("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 2)]
+pub fn test_revert_perft(#[case] fen: &str, #[case] depth: i8) {
+    let mut board = Board::from_fen(fen).unwrap();
     let initial_fen = board.to_fen();
     for mv in board.get_legal_moves() {
         let en_passant_target = board.en_passant_target;
         board.make_move(&mv);
-        perft_rec(&mut board, 1);
+        perft_rec(&mut board, depth);
         board.unmake_move(&mv);
         board.en_passant_target = en_passant_target; // TODO make unmake move do this
         assert_eq!(board.to_fen(), initial_fen);
@@ -316,4 +318,11 @@ fn perft_rec(board: &mut Board, depth: i8) -> u64 {
         assert_eq!(board.to_fen(), initial_fen);
     }
     count
+}
+
+
+#[test]
+pub fn test_castling_right_bits() {
+    let mut board = Board::from_fen("r1b1k3/ppBpnN1r/2n1p3/6pp/1b1P2P1/P1NR3P/1PP2P2/2K2B1R b q - 2 16").unwrap();
+    perft(&mut board, 3);
 }

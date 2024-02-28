@@ -12,7 +12,6 @@ use crate::board::{Board, Color, File, Move, Piece, PieceType, Rank, Square};
 const A2: Square = Square(A, _2);
 const A4: Square = Square(A, _4);
 const A8: Square = Square(A, _8);
-const B5: Square = Square(B, _5);
 const B7: Square = Square(B, _7);
 const C5: Square = Square(C, _5);
 const D5: Square = Square(D, _5);
@@ -22,15 +21,12 @@ const E2: Square = Square(E, _2);
 const E3: Square = Square(E, _3);
 const E4: Square = Square(E, _4);
 const E5: Square = Square(E, _5);
-const E8: Square = Square(E, _8);
 const F1: Square = Square(F, _1);
 const F2: Square = Square(F, _2);
 const F3: Square = Square(F, _3);
 const F6: Square = Square(F, _6);
 const F7: Square = Square(F, _7);
-const F8: Square = Square(F, _8);
 const G2: Square = Square(G, _2);
-const H5: Square = Square(H, _5);
 
 #[rstest]
 #[case(White)]
