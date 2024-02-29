@@ -8,6 +8,7 @@ use crate::{
         move_checking::{apply_legal_move, is_king_in_check},
         Board,
     },
+    hashing::{get_zobrist_hash, update_zobrist_hash, TranspEntry, TranspTable},
     uci::WorkerMessage,
 };
 
@@ -16,6 +17,132 @@ use super::eval::get_material_eval;
 fn get_noise() -> f32 {
     let mut rng = rand::thread_rng();
     rng.gen_range(-0.1..0.1)
+}
+
+pub fn search_minimax_threaded_cached(
+    board: &Board,
+    depth: u8,
+    eval_fn: fn(&Board) -> f32,
+    trans_table: &mut TranspTable,
+    rx: mpsc::Receiver<()>,
+) {
+    let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
+    let mut best_move = moves[0].clone();
+    let mut best_score = f32::MIN;
+    let initial_hash = get_zobrist_hash(board);
+    for move_ in moves {
+        let new_board = apply_legal_move(&board, &move_);
+        let score = -nega_max_cached(
+            &new_board,
+            depth - 1,
+            eval_fn,
+            trans_table,
+            update_zobrist_hash(board, initial_hash, &move_),
+        ) + get_noise(); // add noise to shuffle moves of equal value
+        if score > best_score {
+            best_score = score;
+            best_move = move_;
+        }
+        if rx.try_recv().is_ok() {
+            break;
+        }
+    }
+    println!("bestmove {}", best_move.to_move(board).to_uci_string(board))
+}
+
+pub fn search_minimax_cached(
+    board: &Board,
+    depth: u8,
+    eval_fn: fn(&Board) -> f32,
+    trans_table: &mut TranspTable,
+) -> LegalMove {
+    let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
+    let mut best_move = moves[0].clone();
+    let mut best_score = f32::MIN;
+    let initial_hash = get_zobrist_hash(board);
+    for move_ in moves {
+        let new_board = apply_legal_move(board, &move_);
+        let score = -nega_max_cached(
+            &new_board,
+            depth - 1,
+            eval_fn,
+            trans_table,
+            update_zobrist_hash(board, initial_hash, &move_),
+        ) + get_noise(); // add noise to shuffle moves of equal value
+        if score > best_score {
+            best_score = score;
+            best_move = move_;
+        }
+    }
+    best_move
+}
+
+fn nega_max_cached(
+    board: &Board,
+    depth: u8,
+    eval_fn: fn(&Board) -> f32,
+    trans_table: &mut TranspTable,
+    board_hash: u64,
+) -> f32 {
+    let cache_entry = trans_table.get(board_hash);
+    if let Some(entry) = cache_entry {
+        if entry.depth >= depth {
+            return entry.value;
+        }
+    }
+    if depth == 0 {
+        let eval = match board.get_gamestate() {
+            GameState::Mated(_) => f32::MIN,
+            GameState::Stalemate => 0.0,
+            GameState::InProgress => eval_fn(board),
+        };
+        trans_table.put(
+            board_hash,
+            TranspEntry {
+                depth: 0,
+                value: eval,
+            },
+        ); // TODO experiment if this is actually faster
+        return eval;
+    }
+    let moves = board.get_legal_moves(); // Avoid calling get_gamestate because it would duplicate work from get_legal_moves()
+    if moves.is_empty() {
+        let eval = if is_king_in_check(board) {
+            f32::MIN // mated
+        } else {
+            0.0 // stalemate
+        };
+        trans_table.put(
+            board_hash,
+            TranspEntry {
+                depth: 0,
+                value: eval,
+            },
+        ); // TODO experiment if this is actually faster
+        return eval;
+    }
+    let mut best_score = f32::MIN; // if no legal moves, return worst possible score TODO fix this for stalemate
+    for move_ in moves {
+        let new_board = apply_legal_move(board, &move_);
+        let score = -nega_max_cached(
+            &new_board,
+            depth - 1,
+            eval_fn,
+            trans_table,
+            update_zobrist_hash(board, board_hash, &move_),
+        );
+        if score > best_score {
+            best_score = score;
+        }
+    }
+    trans_table.put(
+        board_hash,
+        TranspEntry {
+            depth,
+            value: best_score,
+        },
+    );
+    best_score
 }
 
 pub fn search_minimax(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32) -> LegalMove {

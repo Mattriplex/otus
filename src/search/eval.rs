@@ -1,7 +1,13 @@
 use std::cmp::min;
 
 use crate::board::{
-    model_utils::ColorProps, models::{Color, File, Piece, PieceType, Square}, move_checking::{is_king_in_check, seek_king, square_utils::{pos_plus, SquareIter}}, Board
+    model_utils::ColorProps,
+    models::{Color, File, Piece, PieceType, Square},
+    move_checking::{
+        is_king_in_check, seek_king,
+        square_utils::{pos_plus, SquareIter},
+    },
+    Board,
 };
 
 pub fn get_material_eval(board: &Board) -> f32 {
@@ -28,13 +34,13 @@ pub fn get_material_eval(board: &Board) -> f32 {
 
 fn get_knight_value(square: Square) -> f32 {
     let dx = min(square.0 as i32, 7 - square.0 as i32);
-    let dy = min(square.0 as i32,  7 - square.0 as i32);
+    let dy = min(square.0 as i32, 7 - square.0 as i32);
     let num_jumps = match (dx, dy) {
         (0, 0) => 2,
         (1, 0) | (0, 1) => 3,
         (1, 1) | (0, 2) | (2, 0) | (0, 3) | (3, 0) => 4,
         (1, 2) | (2, 1) | (1, 3) | (3, 1) => 6,
-        _ => 8
+        _ => 8,
     };
     return 250.0 + 10.0 * num_jumps as f32;
 }
@@ -53,7 +59,10 @@ fn middlegame_bonuses(board: &Board) -> f32 {
     // pawn shield bonus (king on back rank, at least 2 pawns in front)
     if king_sq.1 == board.active_player.home_rank() {
         let mut pawn_shield = 0;
-        for pos in [(-1, 0), (0, 0), (1, 0)].iter().filter_map(|dir| pos_plus(Square(king_sq.0, active_player.pawn_start_rank()), *dir)) {
+        for pos in [(-1, 0), (0, 0), (1, 0)]
+            .iter()
+            .filter_map(|dir| pos_plus(Square(king_sq.0, active_player.pawn_start_rank()), *dir))
+        {
             if let Some(Piece(PieceType::Pawn, owner)) = board.get_piece_at(pos) {
                 if owner == board.active_player {
                     pawn_shield += 1;
@@ -76,7 +85,7 @@ fn endgame_bonuses(board: &Board) -> f32 {
     let king_sq = seek_king(board, board.active_player.opponent());
     // distance to edge
     let dx = min(king_sq.0 as i32, 7 - king_sq.0 as i32);
-    let dy = min(king_sq.0 as i32,  7 - king_sq.0 as i32);
+    let dy = min(king_sq.0 as i32, 7 - king_sq.0 as i32);
     score += (3.0 - min(dx, dy) as f32) * 10.0;
     score
 }
@@ -90,7 +99,7 @@ fn get_pawn_value(square: Square, color: Color) -> f32 {
         2 => 20.0,
         3 => 30.0,
         4 => 40.0,
-        _ => 220.0 // about to promote, extremely valuable
+        _ => 220.0, // about to promote, extremely valuable
     };
     // middle pawns are more valuable
     let file = square.0;
@@ -102,8 +111,6 @@ fn get_pawn_value(square: Square, color: Color) -> f32 {
     };
     100.0 + dist_bonus + file_bonus
 }
-
-
 
 // score in centipawns
 pub fn smart_eval(board: &Board) -> f32 {
@@ -145,6 +152,5 @@ pub fn smart_eval(board: &Board) -> f32 {
 
     score
 }
-
 
 // TODO: figure out why knight into corner is best move in N7/7p/4k1p1/p3pp2/1b4Pr/5P2/6KP/1R6 b - - 1 37

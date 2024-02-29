@@ -41,5 +41,3 @@ for player_keys in piece_square_keys:
         print("        ],")
     print("    ],")
 print("];")
-
-

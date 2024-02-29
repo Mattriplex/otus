@@ -1,5 +1,7 @@
 use crate::board::{
-    models::{File, LegalMove, Square}, move_checking::apply_legal_move, Board
+    models::{File, LegalMove, Square},
+    move_checking::apply_legal_move,
+    Board,
 };
 
 use super::{get_zobrist_hash, update_zobrist_hash};
@@ -34,20 +36,25 @@ pub fn test_transposition_hashes_match() {
             captured_piece: None,
         },
     );
-    let (board_1, hash_1) = [pawn_move_w.clone(), pawn_move_b.clone(), knight_move_w.clone(), knight_move_b.clone()]
+    let (board_1, hash_1) = [
+        pawn_move_w.clone(),
+        pawn_move_b.clone(),
+        knight_move_w.clone(),
+        knight_move_b.clone(),
+    ]
     .iter()
     .fold((board, init_hash), |(board, hash), mv| {
-        let new_hash = update_zobrist_hash(&board, hash, mv.clone());
+        let new_hash = update_zobrist_hash(&board, hash, mv);
         let new_board = apply_legal_move(&board, mv);
         (new_board, new_hash)
     });
     let (board_2, hash_2) = [knight_move_w, knight_move_b, pawn_move_w, pawn_move_b]
-    .iter()
-    .fold((board, init_hash), |(board, hash), mv| {
-        let new_hash = update_zobrist_hash(&board, hash, mv.clone());
-        let new_board = apply_legal_move(&board, mv);
-        (new_board, new_hash)
-    });
+        .iter()
+        .fold((board, init_hash), |(board, hash), mv| {
+            let new_hash = update_zobrist_hash(&board, hash, mv);
+            let new_board = apply_legal_move(&board, mv);
+            (new_board, new_hash)
+        });
 
     assert_eq!(hash_1, get_zobrist_hash(&board_1));
     assert_eq!(hash_2, get_zobrist_hash(&board_2));
