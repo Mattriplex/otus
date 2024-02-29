@@ -85,39 +85,45 @@ fn get_castling_mask(board: &Board, src: Square, dest: Square) -> u8 {
     if dest == Square(File::A, opp_home_rank)
         && board.has_queenside_castling_rights(board.active_player.opponent())
     {
-        mask |= board.castling_rights & match board.active_player { // Need to & with castling rights to avoid wrongly granting castling rights when XORing
-            Color::White => 0b0001,
-            Color::Black => 0b0100,
-        };
+        mask |= board.castling_rights
+            & match board.active_player {
+                // Need to & with castling rights to avoid wrongly granting castling rights when XORing
+                Color::White => 0b0001,
+                Color::Black => 0b0100,
+            };
     } else if dest == Square(File::H, opp_home_rank)
         && board.has_kingside_castling_rights(board.active_player.opponent())
     {
-        mask |= board.castling_rights & match board.active_player {
-            Color::White => 0b0010,
-            Color::Black => 0b1000,
-        };
+        mask |= board.castling_rights
+            & match board.active_player {
+                Color::White => 0b0010,
+                Color::Black => 0b1000,
+            };
     }
     if board.has_kingside_castling_rights(board.active_player)
         || board.has_queenside_castling_rights(board.active_player)
     {
         // does the move move the king?
         if src == Square(File::E, home_rank) {
-            return board.castling_rights & match board.active_player {
-                Color::White => 0b1100,
-                Color::Black => 0b0011,
-            };
+            return board.castling_rights
+                & match board.active_player {
+                    Color::White => 0b1100,
+                    Color::Black => 0b0011,
+                };
         } else if src == Square(File::H, home_rank) {
             // does the move move a rook?
 
-            mask |= board.castling_rights & match board.active_player {
-                Color::White => 0b1000,
-                Color::Black => 0b0010,
-            };
+            mask |= board.castling_rights
+                & match board.active_player {
+                    Color::White => 0b1000,
+                    Color::Black => 0b0010,
+                };
         } else if src == Square(File::A, home_rank) {
-            mask |= board.castling_rights & match board.active_player {
-                Color::White => 0b0100,
-                Color::Black => 0b0001,
-            };
+            mask |= board.castling_rights
+                & match board.active_player {
+                    Color::White => 0b0100,
+                    Color::Black => 0b0001,
+                };
         }
     }
     mask

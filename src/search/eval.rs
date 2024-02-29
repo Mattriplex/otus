@@ -145,3 +145,6 @@ pub fn smart_eval(board: &Board) -> f32 {
 
     score
 }
+
+
+// TODO: figure out why knight into corner is best move in N7/7p/4k1p1/p3pp2/1b4Pr/5P2/6KP/1R6 b - - 1 37

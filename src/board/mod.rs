@@ -27,8 +27,8 @@ mod tests;
 pub struct Board {
     squares: [[Option<Piece>; 8]; 8],
     pub active_player: Color,
-    castling_rights: u8, // KQkq
-    en_passant_target: Option<Square>,
+    pub castling_rights: u8, // KQkq
+    pub en_passant_target: Option<Square>,
 }
 
 impl Board {

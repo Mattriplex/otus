@@ -201,7 +201,7 @@ impl fmt::Display for Move {
                 src: from,
                 dest: to,
             } => write!(f, "{}{}", from, to),
-            Move::CastleKingside => write!(f, "0-0"), //TODO make uci compliant
+            Move::CastleKingside => write!(f, "0-0"),
             Move::CastleQueenside => write!(f, "0-0-0"),
             Move::Promotion {
                 src: from,
@@ -210,7 +210,7 @@ impl fmt::Display for Move {
             } => {
                 write!(
                     f,
-                    "{}{}{}",
+                    "{}{}={}",
                     from,
                     to,
                     match promotion {
@@ -281,6 +281,33 @@ impl Move {
                 src: from,
                 dest: to,
             })
+        }
+    }
+
+    pub fn to_uci_string(&self, board: &Board) -> String {
+        match self {
+            Move::Normal { src, dest } => format!("{}{}", src, dest),
+            Move::CastleKingside => match board.active_player {
+                Color::White => "e1g1".to_string(),
+                Color::Black => "e8g8".to_string(),
+            },
+            Move::CastleQueenside => match board.active_player {
+                Color::White => "e1c1".to_string(),
+                Color::Black => "e8c8".to_string(),
+            },
+            Move::Promotion {
+                src,
+                dest,
+                promotion,
+            } => {
+                let promotion_symb = match promotion {
+                    PromotionPieceType::Knight => "n",
+                    PromotionPieceType::Bishop => "b",
+                    PromotionPieceType::Rook => "r",
+                    PromotionPieceType::Queen => "q",
+                };
+                format!("{}{}{}", src, dest, promotion_symb)
+            }
         }
     }
 }

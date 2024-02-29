@@ -33,7 +33,12 @@ pub fn search_minimax(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32) -> 
     best_move
 }
 
-pub fn search_minimax_threaded(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32, rx: mpsc::Receiver<()>) {
+pub fn search_minimax_threaded(
+    board: &Board,
+    depth: u32,
+    eval_fn: fn(&Board) -> f32,
+    rx: mpsc::Receiver<()>,
+) {
     let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
     let mut best_move = moves[0].clone();
     let mut best_score = f32::MIN;
@@ -48,7 +53,7 @@ pub fn search_minimax_threaded(board: &Board, depth: u32, eval_fn: fn(&Board) ->
             break;
         }
     }
-    println!("bestmove {}", best_move.to_move(board))
+    println!("bestmove {}", best_move.to_move(board).to_uci_string(board))
 }
 
 fn nega_max(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32) -> f32 {

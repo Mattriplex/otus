@@ -1,7 +1,10 @@
 use rstest::rstest;
 use tests::move_checking::get_legal_move_from_move;
 
-use crate::{board::*, search::perft::{self, perft}};
+use crate::{
+    board::*,
+    search::perft::{self, perft},
+};
 
 use self::move_checking::apply_legal_move;
 
@@ -320,9 +323,10 @@ fn perft_rec(board: &mut Board, depth: i8) -> u64 {
     count
 }
 
-
 #[test]
 pub fn test_castling_right_bits() {
-    let mut board = Board::from_fen("r1b1k3/ppBpnN1r/2n1p3/6pp/1b1P2P1/P1NR3P/1PP2P2/2K2B1R b q - 2 16").unwrap();
+    let mut board =
+        Board::from_fen("r1b1k3/ppBpnN1r/2n1p3/6pp/1b1P2P1/P1NR3P/1PP2P2/2K2B1R b q - 2 16")
+            .unwrap();
     perft(&mut board, 3);
 }
