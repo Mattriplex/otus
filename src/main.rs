@@ -5,7 +5,7 @@ use otus::{
         move_checking::apply_legal_move,
         Board,
     },
-    players::{ChessPlayer, HumanPlayer, Otus},
+    players::{ChessPlayer, HumanPlayer, RandomPlayer},
     search::{eval::smart_eval, minimax::search_minimax},
     uci::UciEngine,
 };
@@ -30,8 +30,8 @@ fn main() {
 
 fn run_test_game() {
     let human_player = HumanPlayer;
-    let otus = Otus;
-    match run_game(&human_player, &otus) {
+    let random_player = RandomPlayer;
+    match run_game(&human_player, &random_player) {
         GameState::Mated(color) => println!("{} wins!", color.opponent()),
         GameState::Stalemate => println!("Stalemate!"),
         GameState::InProgress => unreachable!("Game should have ended"),

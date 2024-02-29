@@ -6,7 +6,7 @@ use crate::{
         move_checking::apply_move,
         Board,
     },
-    players::ChessPlayer,
+    players::{ChessPlayer, Otus, UciPlayer},
     search::{eval::smart_eval, minimax::search_minimax_threaded, perft},
 };
 
@@ -19,6 +19,7 @@ pub enum WorkerMessage {
 pub struct UciEngine {
     tx: std::sync::mpsc::Sender<()>,
     position: Board,
+    computer_agent: Otus,
 }
 
 fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
@@ -36,6 +37,7 @@ impl UciEngine {
         Self {
             tx,
             position: Board::default(),
+            computer_agent: Otus::new()
         }
     }
 
@@ -68,7 +70,7 @@ impl UciEngine {
         self.tx = tx;
         // TODO parse time control etc
         thread::scope(|s| {
-            s.spawn(|| search_minimax_threaded(&self.position, 5, smart_eval, rx));
+            s.spawn(|| self.computer_agent.propose_move(&self.position, rx));
         });
     }
 
