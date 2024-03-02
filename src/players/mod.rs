@@ -1,5 +1,7 @@
 use crate::{
-    board::{models::LegalMove, Board}, hashing::TranspTable, uci::WorkerMessage
+    board::{models::LegalMove, Board},
+    hashing::TranspTable,
+    uci::WorkerMessage,
 };
 
 pub mod human_player;
@@ -18,7 +20,5 @@ pub struct HumanPlayer;
 pub struct RandomPlayer;
 
 pub struct Otus {
-    transp_table: TranspTable
+    transp_table: TranspTable,
 }
-
-

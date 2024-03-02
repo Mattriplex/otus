@@ -22,6 +22,7 @@ pub struct TranspTable {
     // TODO add eviction policy
     table: Vec<Option<(u64, TranspEntry)>>,
     size: usize,
+    occupancy: usize,
 }
 
 fn get_piece_square_key(piece: Piece, square: Square) -> u64 {

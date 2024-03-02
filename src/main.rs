@@ -5,10 +5,25 @@ use otus::{
         move_checking::apply_legal_move,
         Board,
     },
+    hashing::TranspTable,
     players::{ChessPlayer, HumanPlayer, RandomPlayer},
-    search::{eval::smart_eval, minimax::search_minimax},
+    search::{
+        eval::smart_eval,
+        minimax::{search_minimax, search_minimax_threaded_cached},
+    },
     uci::UciEngine,
 };
+
+fn perftest() {
+    let board = Board::default();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let mut transp_table = TranspTable::new(2 << 24);
+    search_minimax_threaded_cached(&board, 6, smart_eval, &mut transp_table, rx);
+    println!(
+        "Transposition table occupancy: {}",
+        transp_table.get_occupancy_factor()
+    );
+}
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
@@ -18,8 +33,7 @@ fn main() {
                 run_test_game();
             }
             "perftest" => {
-                let board = Board::default();
-                println!("{}", search_minimax(&board, 5, smart_eval).to_move(&board));
+                perftest();
             }
             _ => println!("Invalid argument"),
         }

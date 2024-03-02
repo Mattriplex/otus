@@ -37,7 +37,7 @@ impl UciEngine {
         Self {
             tx,
             position: Board::default(),
-            computer_agent: Otus::new()
+            computer_agent: Otus::new(),
         }
     }
 

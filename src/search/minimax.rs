@@ -9,7 +9,6 @@ use crate::{
         Board,
     },
     hashing::{get_zobrist_hash, update_zobrist_hash, TranspEntry, TranspTable},
-    uci::WorkerMessage,
 };
 
 use super::eval::get_material_eval;
@@ -42,13 +41,19 @@ pub fn search_minimax_threaded_cached(
         let result = nega_max_cached(
             &new_board,
             depth - 1,
+            f32::MIN,
+            f32::MAX,
             eval_fn,
             trans_table,
             update_zobrist_hash(board, initial_hash, &move_),
         );
         let time_elapsed = time.elapsed().as_micros();
         nodes_searched += result.nodes_searched;
-        println!("info nodes {} nps {}", nodes_searched, result.nodes_searched as f64 / time_elapsed as f64 * 1_000_000.0);
+        println!(
+            "info nodes {} nps {}",
+            nodes_searched,
+            (result.nodes_searched as f64 / time_elapsed as f64 * 1_000_000.0) as i64
+        );
         let score = -result.eval + get_noise(); // add noise to shuffle moves of equal value
         if score > best_score {
             best_score = score;
@@ -76,6 +81,8 @@ pub fn search_minimax_cached(
         let result = nega_max_cached(
             &new_board,
             depth - 1,
+            f32::MIN,
+            f32::MAX,
             eval_fn,
             trans_table,
             update_zobrist_hash(board, initial_hash, &move_),
@@ -89,9 +96,19 @@ pub fn search_minimax_cached(
     best_move
 }
 
+fn get_cached_eval(board: &Board, board_hash: u64, move_: &LegalMove, cache: &TranspTable) -> f32 {
+    let hash = update_zobrist_hash(board, board_hash, move_);
+    match cache.get(hash) {
+        Some(entry) => entry.value,
+        None => f32::MAX,
+    }
+}
+
 fn nega_max_cached(
     board: &Board,
     depth: u8,
+    mut alpha: f32,
+    beta: f32,
     eval_fn: fn(&Board) -> f32,
     trans_table: &mut TranspTable,
     board_hash: u64,
@@ -99,7 +116,10 @@ fn nega_max_cached(
     let cache_entry = trans_table.get(board_hash);
     if let Some(entry) = cache_entry {
         if entry.depth >= depth {
-            return SearchResult { eval: entry.value, nodes_searched: 0 };
+            return SearchResult {
+                eval: entry.value,
+                nodes_searched: 0,
+            };
         }
     }
     if depth == 0 {
@@ -115,9 +135,12 @@ fn nega_max_cached(
                 value: eval,
             },
         ); // TODO experiment if this is actually faster
-        return SearchResult { eval, nodes_searched: 1 };
+        return SearchResult {
+            eval,
+            nodes_searched: 1,
+        };
     }
-    let moves = board.get_legal_moves(); // Avoid calling get_gamestate because it would duplicate work from get_legal_moves()
+    let mut moves = board.get_legal_moves(); // Avoid calling get_gamestate because it would duplicate work from get_legal_moves()
     if moves.is_empty() {
         let eval = if is_king_in_check(board) {
             f32::MIN // mated
@@ -131,33 +154,52 @@ fn nega_max_cached(
                 value: eval,
             },
         ); // TODO experiment if this is actually faster
-        return SearchResult { eval, nodes_searched: 1 };
+        return SearchResult {
+            eval,
+            nodes_searched: 1,
+        };
     }
-    let mut best_score = f32::MIN; // if no legal moves, return worst possible score TODO fix this for stalemate
+    // move ordering
+    moves.sort_unstable_by(|a, b| {
+        let eval_a = get_cached_eval(board, board_hash, a, trans_table);
+        let eval_b = get_cached_eval(board, board_hash, b, trans_table);
+        eval_a.partial_cmp(&eval_b).unwrap() // want to sort valuations in ascending order, these are opponent evals, opps worst situation is my best move
+    });
     let mut nodes_searched = 0;
     for move_ in moves {
         let new_board = apply_legal_move(board, &move_);
         let result = nega_max_cached(
             &new_board,
             depth - 1,
+            -beta,
+            -alpha,
             eval_fn,
             trans_table,
             update_zobrist_hash(board, board_hash, &move_),
         );
         let score = -result.eval;
+        if score >= beta {
+            return SearchResult {
+                eval: beta,
+                nodes_searched,
+            };
+        }
         nodes_searched += result.nodes_searched;
-        if score > best_score {
-            best_score = score;
+        if score > alpha {
+            alpha = score;
         }
     }
     trans_table.put(
         board_hash,
         TranspEntry {
             depth,
-            value: best_score,
+            value: alpha,
         },
     );
-    SearchResult { eval: best_score, nodes_searched }
+    SearchResult {
+        eval: alpha,
+        nodes_searched,
+    }
 }
 
 pub fn search_minimax(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32) -> LegalMove {
