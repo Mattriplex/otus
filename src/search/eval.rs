@@ -42,7 +42,7 @@ fn get_knight_value(square: Square) -> f32 {
         (1, 2) | (2, 1) | (1, 3) | (3, 1) => 6,
         _ => 8,
     };
-    return 250.0 + 10.0 * num_jumps as f32;
+    250.0 + 10.0 * num_jumps as f32
 }
 
 fn middlegame_bonuses(board: &Board) -> f32 {

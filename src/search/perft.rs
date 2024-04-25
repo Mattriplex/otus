@@ -1,4 +1,4 @@
-use crate::board::{move_checking::apply_legal_move, Board};
+use crate::board::{Board};
 
 pub fn perft(board: &mut Board, depth: i8) -> u64 {
     if depth == 0 {

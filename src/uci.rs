@@ -2,12 +2,12 @@ use std::thread;
 
 use crate::{
     board::{
-        models::{LegalMove, Move},
+        models::{Move},
         move_checking::apply_move,
         Board,
     },
     players::{ChessPlayer, Otus, UciPlayer},
-    search::{eval::smart_eval, minimax::search_minimax_threaded, perft},
+    search::{perft},
 };
 
 pub enum WorkerMessage {
@@ -29,6 +29,12 @@ fn process_moves_list(initial_board: &Board, move_tokens: Vec<&str>) -> Board {
         board = apply_move(&board, &move_).expect("Illegal move");
     }
     board
+}
+
+impl Default for UciEngine {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl UciEngine {

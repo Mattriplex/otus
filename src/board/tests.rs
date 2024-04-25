@@ -3,10 +3,10 @@ use tests::move_checking::get_legal_move_from_move;
 
 use crate::{
     board::*,
-    search::perft::{self, perft},
+    search::perft::{perft},
 };
 
-use self::move_checking::apply_legal_move;
+
 
 #[test]
 fn test_fen_default_board() {

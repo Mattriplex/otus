@@ -1,7 +1,6 @@
 use crate::{
     board::{models::LegalMove, Board},
     hashing::TranspTable,
-    uci::WorkerMessage,
 };
 
 pub mod human_player;

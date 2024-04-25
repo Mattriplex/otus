@@ -1,5 +1,5 @@
 use crate::board::{
-    models::{File, LegalMove, Square},
+    models::{LegalMove, Square},
     move_checking::apply_legal_move,
     Board,
 };

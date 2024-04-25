@@ -9,14 +9,14 @@ use otus::{
     players::{ChessPlayer, HumanPlayer, RandomPlayer},
     search::{
         eval::smart_eval,
-        minimax::{search_minimax, search_minimax_threaded_cached},
+        minimax::{search_minimax_threaded_cached},
     },
     uci::UciEngine,
 };
 
 fn perftest() {
     let board = Board::default();
-    let (tx, rx) = std::sync::mpsc::channel();
+    let (_tx, rx) = std::sync::mpsc::channel();
     let mut transp_table = TranspTable::new(2 << 24);
     search_minimax_threaded_cached(&board, 6, smart_eval, &mut transp_table, rx);
     println!(

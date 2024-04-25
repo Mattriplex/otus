@@ -3,7 +3,7 @@ use otus::{
     board::Board,
     hashing::TranspTable,
     search::{
-        eval::{get_material_eval, smart_eval},
+        eval::{smart_eval},
         minimax::{search_alpha_beta, search_minimax, search_minimax_cached},
     },
 };

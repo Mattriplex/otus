@@ -36,7 +36,7 @@ pub fn search_minimax_threaded_cached(
     let initial_hash = get_zobrist_hash(board);
     let mut nodes_searched = 0;
     for move_ in moves {
-        let new_board = apply_legal_move(&board, &move_);
+        let new_board = apply_legal_move(board, &move_);
         let time = std::time::Instant::now();
         let result = nega_max_cached(
             &new_board,
@@ -227,7 +227,7 @@ pub fn search_minimax_threaded(
     let mut best_move = moves[0].clone();
     let mut best_score = f32::MIN;
     for move_ in moves {
-        let new_board = apply_legal_move(&board, &move_);
+        let new_board = apply_legal_move(board, &move_);
         let score = -nega_max(&new_board, depth - 1, eval_fn) + get_noise(); // add noise to shuffle moves of equal value
         if score > best_score {
             best_score = score;

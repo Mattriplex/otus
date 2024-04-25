@@ -1,16 +1,21 @@
-use std::thread;
+
 
 use crate::{
-    board::{models::LegalMove, Board},
+    board::{Board},
     hashing::TranspTable,
     search::{
         eval::smart_eval,
-        minimax::{search_minimax, search_minimax_threaded_cached},
+        minimax::{search_minimax_threaded_cached},
     },
-    uci::WorkerMessage,
 };
 
-use super::{ChessPlayer, Otus, UciPlayer};
+use super::{Otus, UciPlayer};
+
+impl Default for Otus {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Otus {
     // TODO make cache size, depth and other parameters configurable
@@ -23,6 +28,6 @@ impl Otus {
 
 impl UciPlayer for Otus {
     fn propose_move(&mut self, board: &Board, rx: std::sync::mpsc::Receiver<()>) {
-        search_minimax_threaded_cached(&board, 6, smart_eval, &mut self.transp_table, rx);
+        search_minimax_threaded_cached(board, 6, smart_eval, &mut self.transp_table, rx);
     }
 }
