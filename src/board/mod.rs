@@ -30,8 +30,8 @@ mod tests;
 pub struct Board {
     bitboards: [[u64; 6]; 2],
     pub active_player: Color,
-    castling_rights: u8, // KQkq
-    en_passant_target: Option<Square>, // TODO combine with castling rights
+    pub castling_rights: u8, // KQkq
+    pub en_passant_target: Option<Square>, // TODO combine with castling rights
 }
 
 fn piece_of_u8(piece_idx: u8) -> PieceType {
