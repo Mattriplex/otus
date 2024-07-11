@@ -4,8 +4,7 @@ use crate::board::{
     model_utils::ColorProps,
     models::{Color, File, Piece, PieceType, Square},
     movegen::{
-        is_king_in_check, seek_king,
-        movement_patterns::{pos_plus, SquareIter},
+        movement_patterns::{pos_plus, SquareIter}, utils::{is_king_in_check, seek_king},
     },
     Board,
 };

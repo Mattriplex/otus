@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use movegen::utils::PlayerPieceIter;
+use movegen::utils::{is_king_in_check, PlayerPieceIter};
 
 use crate::board::models::Piece;
 
@@ -11,7 +11,7 @@ use self::{
     },
     movegen::{
         can_castle_kingside, can_castle_queenside, get_legal_move_from_pseudolegal_move,
-        is_king_in_check, is_move_legal,
+        is_move_legal,
         movement_patterns::{pos_plus, DirIter, KnightHopIter, RayIter},
     },
 };
