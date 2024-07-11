@@ -3,7 +3,7 @@ use std::cmp::min;
 use crate::board::{
     model_utils::ColorProps,
     models::{Color, File, Piece, PieceType, Square},
-    move_generation::{
+    movegen::{
         is_king_in_check, seek_king,
         movement_patterns::{pos_plus, SquareIter},
     },

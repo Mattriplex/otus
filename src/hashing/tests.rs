@@ -1,6 +1,6 @@
 use crate::board::{
     models::{LegalMove, Square},
-    move_generation::apply_legal_move,
+    movegen::apply_legal_move,
     Board,
 };
 

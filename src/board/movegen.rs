@@ -7,7 +7,7 @@ use crate::board::{Board, Move};
 use self::movement_patterns::{is_move_pseudo_legal, SlideIter};
 
 use super::{
-    board_utils::is_square_attacked,
+    movegen_utils::is_square_attacked,
     model_utils::{ColorProps, PromotionToPiece},
     models::LegalMove,
     Color, File, Piece, PieceType, PromotionPieceType, Rank, Square,

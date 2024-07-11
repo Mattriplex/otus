@@ -1,8 +1,8 @@
 use rstest::rstest;
 
 use crate::board::model_utils::ColorProps;
-use crate::board::move_generation::apply_move;
-use crate::board::move_generation::is_move_legal;
+use crate::board::movegen::apply_move;
+use crate::board::movegen::is_move_legal;
 use crate::board::Color::*;
 use crate::board::File::*;
 use crate::board::PieceType::*;

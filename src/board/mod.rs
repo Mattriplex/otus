@@ -3,22 +3,22 @@ use std::fmt::{self, Display};
 use crate::board::models::Piece;
 
 use self::{
-    board_utils::PlayerPieceIter,
+    movegen_utils::PlayerPieceIter,
     model_utils::ColorProps,
     models::{
         Color, File, GameState, LegalMove, Move, PieceType, PromotionPieceType, Rank, Square,
     },
-    move_generation::{
+    movegen::{
         can_castle_kingside, can_castle_queenside, get_legal_move_from_pseudolegal_move,
         is_king_in_check, is_move_legal,
         movement_patterns::{pos_plus, DirIter, KnightHopIter, RayIter},
     },
 };
 
-pub mod board_utils;
+pub mod movegen_utils;
 pub mod model_utils;
 pub mod models;
-pub mod move_generation;
+pub mod movegen;
 
 #[cfg(test)]
 mod tests;

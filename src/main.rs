@@ -2,7 +2,7 @@ use otus::{
     board::{
         model_utils::ColorProps,
         models::{Color, GameState},
-        move_generation::apply_legal_move,
+        movegen::apply_legal_move,
         Board,
     },
     hashing::TranspositionTable,
