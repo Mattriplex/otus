@@ -1,9 +1,10 @@
 use std::fmt::{self, Display};
 
+use movegen::utils::PlayerPieceIter;
+
 use crate::board::models::Piece;
 
 use self::{
-    movegen_utils::PlayerPieceIter,
     model_utils::ColorProps,
     models::{
         Color, File, GameState, LegalMove, Move, PieceType, PromotionPieceType, Rank, Square,
@@ -15,7 +16,6 @@ use self::{
     },
 };
 
-pub mod movegen_utils;
 pub mod model_utils;
 pub mod models;
 pub mod movegen;

@@ -1,13 +1,15 @@
 pub mod movement_patterns;
 #[cfg(test)]
 mod tests;
+pub mod utils;
+
+use utils::is_square_attacked;
 
 use crate::board::{Board, Move};
 
 use self::movement_patterns::{is_move_pseudo_legal, SlideIter};
 
 use super::{
-    movegen_utils::is_square_attacked,
     model_utils::{ColorProps, PromotionToPiece},
     models::LegalMove,
     Color, File, Piece, PieceType, PromotionPieceType, Rank, Square,

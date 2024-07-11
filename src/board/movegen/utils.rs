@@ -1,8 +1,7 @@
-use super::{
-    models::{Color, Piece, PieceType, Square},
-    movegen::movement_patterns::{pos_plus, DirIter, KnightHopIter, RayIter, SquareIter},
-    Board,
-};
+use crate::board::{models::{Color, Piece, PieceType, Square}, Board};
+
+use super::movement_patterns::{pos_plus, DirIter, KnightHopIter, RayIter, SquareIter};
+
 
 pub struct PlayerPieceIter<'a> {
     board: &'a Board,
