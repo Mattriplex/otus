@@ -1,3 +1,7 @@
+/**
+ * Type conversions and implementations of standard interfaces like display for game model structs.
+ */
+
 use std::fmt::{self, Display};
 
 use crate::board::models::{Color, Piece, PromotionPieceType};

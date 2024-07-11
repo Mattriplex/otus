@@ -13,8 +13,9 @@ use super::{
     Color, File, Piece, PieceType, PromotionPieceType, Rank, Square,
 };
 
-// To be used with bishop, rook, queen
-// returns true if squares between src and dest are free of pieces (exclusive)
+/** To be used with bishop, rook, queen
+* returns true if squares between src and dest are free of pieces (exclusive)
+*/
 fn is_sliding_path_free(board: &Board, src: Square, dest: Square) -> bool {
     let slide_iter = SlideIter::new(src, dest);
     for pos in slide_iter {
@@ -49,7 +50,7 @@ pub fn seek_king(board: &Board, color: Color) -> Square {
     unreachable!("No king on the board");
 }
 
-// new_board: Move is already carried out, but active player is not switched
+/// new_board: Move is already carried out, but active player is not switched yet
 pub fn is_king_in_check(new_board: &Board) -> bool {
     let king_pos = seek_king(new_board, new_board.active_player);
     is_square_attacked(new_board, king_pos)
@@ -69,6 +70,16 @@ pub fn apply_move(board: &Board, move_: &Move) -> Result<Board, String> {
         Some(legal_move) => Ok(apply_legal_move(board, &legal_move)),
         None => Err("Move is not legal".to_string()),
     }
+}
+
+pub fn apply_legal_move(board: &Board, move_: &LegalMove) -> Board {
+    let mut new_board = *board;
+    new_board.make_move(move_);
+    new_board
+}
+
+pub fn is_move_legal(board: &Board, move_: &Move) -> bool {
+    apply_move(board, move_).is_ok()
 }
 
 fn get_castling_mask(board: &Board, src: Square, dest: Square) -> u8 {
@@ -386,12 +397,3 @@ pub fn get_legal_move_from_pseudolegal_move(board: &Board, move_: &Move) -> Opti
     }
 }
 
-pub fn apply_legal_move(board: &Board, move_: &LegalMove) -> Board {
-    let mut new_board = *board;
-    new_board.make_move(move_);
-    new_board
-}
-
-pub fn is_move_legal(board: &Board, move_: &Move) -> bool {
-    apply_move(board, move_).is_ok()
-}
