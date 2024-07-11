@@ -8,7 +8,7 @@ use self::{
     models::{
         Color, File, GameState, LegalMove, Move, PieceType, PromotionPieceType, Rank, Square,
     },
-    move_checking::{
+    move_generation::{
         can_castle_kingside, can_castle_queenside, get_legal_move_from_pseudolegal_move,
         is_king_in_check, is_move_legal,
         movement_patterns::{pos_plus, DirIter, KnightHopIter, RayIter},
@@ -18,7 +18,7 @@ use self::{
 pub mod board_utils;
 pub mod model_utils;
 pub mod models;
-pub mod move_checking;
+pub mod move_generation;
 
 #[cfg(test)]
 mod tests;

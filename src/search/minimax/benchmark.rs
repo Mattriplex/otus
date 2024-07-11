@@ -6,7 +6,7 @@
 use crate::{
     board::{
         models::{GameState, LegalMove},
-        move_checking::apply_legal_move,
+        move_generation::apply_legal_move,
         Board,
     },
     search::{eval::get_material_eval, minimax::get_noise},

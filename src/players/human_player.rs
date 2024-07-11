@@ -1,6 +1,6 @@
 use crate::board::{
     models::{LegalMove, Move, PromotionPieceType, Square},
-    move_checking::{get_legal_move_from_move, is_promotion_move},
+    move_generation::{get_legal_move_from_move, is_promotion_move},
     Board,
 };
 

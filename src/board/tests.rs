@@ -1,5 +1,5 @@
 use rstest::rstest;
-use tests::move_checking::get_legal_move_from_move;
+use tests::move_generation::get_legal_move_from_move;
 
 use crate::{
     board::*,

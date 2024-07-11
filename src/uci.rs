@@ -3,7 +3,7 @@ use std::thread;
 use crate::{
     board::{
         models::Move,
-        move_checking::apply_move,
+        move_generation::apply_move,
         Board,
     },
     players::{Otus, UciPlayer},

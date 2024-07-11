@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use crate::{
     board::{
         models::{GameState, LegalMove},
-        move_checking::{apply_legal_move, is_king_in_check},
+        move_generation::{apply_legal_move, is_king_in_check},
         Board,
     },
     hashing::{get_zobrist_hash, update_zobrist_hash, TranspositionEntry, TranspositionTable}, search::minimax::get_noise,
