@@ -1,11 +1,10 @@
 
 
 use crate::{
-    board::{Board},
+    board::Board,
     hashing::TranspositionTable,
     search::{
-        eval::smart_eval,
-        minimax::{search_minimax_threaded_cached},
+        eval::smart_eval, minimax::optimized::search_minimax_threaded_cached,
     },
 };
 

@@ -8,8 +8,7 @@ use otus::{
     hashing::TranspositionTable,
     players::{ChessPlayer, HumanPlayer, RandomPlayer},
     search::{
-        eval::smart_eval,
-        minimax::{search_minimax_threaded_cached},
+        eval::smart_eval, minimax::optimized::search_minimax_threaded_cached,
     },
     uci::UciEngine,
 };

@@ -1,28 +1,22 @@
 use std::sync::mpsc;
 
-use rand::Rng;
-
 use crate::{
     board::{
         models::{GameState, LegalMove},
         move_checking::{apply_legal_move, is_king_in_check},
         Board,
     },
-    hashing::{get_zobrist_hash, update_zobrist_hash, TranspositionEntry, TranspositionTable},
+    hashing::{get_zobrist_hash, update_zobrist_hash, TranspositionEntry, TranspositionTable}, search::minimax::get_noise,
 };
 
-use super::eval::get_material_eval;
+use super::SearchResult;
 
-fn get_noise() -> f32 {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(-0.1..0.1)
-}
 
-struct SearchResult {
-    eval: f32,
-    nodes_searched: u64,
-}
 
+/**
+ * Never call this in a checkmated or stalemate position, i.e. positions without legal moves.
+ * Use Board::getGameState to ensure the precondition if necessary.
+ */
 pub fn search_minimax_threaded_cached(
     board: &Board,
     depth: u8,
@@ -30,7 +24,7 @@ pub fn search_minimax_threaded_cached(
     trans_table: &mut TranspositionTable,
     rx: mpsc::Receiver<()>,
 ) {
-    let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
+    let moves = board.get_legal_moves();
     let mut best_move = moves[0].clone();
     let mut best_score = f32::MIN;
     let initial_hash = get_zobrist_hash(board);
@@ -66,37 +60,7 @@ pub fn search_minimax_threaded_cached(
     println!("bestmove {}", best_move.to_move(board).to_uci_string(board))
 }
 
-pub fn search_minimax_cached(
-    board: &Board,
-    depth: u8,
-    eval_fn: fn(&Board) -> f32,
-    trans_table: &mut TranspositionTable,
-) -> LegalMove {
-    let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
-    let mut best_move = moves[0].clone();
-    let mut best_score = f32::MIN;
-    let initial_hash = get_zobrist_hash(board);
-    for move_ in moves {
-        let new_board = apply_legal_move(board, &move_);
-        let result = nega_max_cached(
-            &new_board,
-            depth - 1,
-            f32::MIN,
-            f32::MAX,
-            eval_fn,
-            trans_table,
-            update_zobrist_hash(board, initial_hash, &move_),
-        );
-        let score = -result.eval + get_noise(); // add noise to shuffle moves of equal value
-        if score > best_score {
-            best_score = score;
-            best_move = move_;
-        }
-    }
-    best_move
-}
-
-fn get_cached_eval(board: &Board, board_hash: u64, move_: &LegalMove, cache: &TranspositionTable) -> f32 {
+fn get_cached_eval_or_inf(board: &Board, board_hash: u64, move_: &LegalMove, cache: &TranspositionTable) -> f32 {
     let hash = update_zobrist_hash(board, board_hash, move_);
     match cache.get(hash) {
         Some(entry) => entry.value,
@@ -104,7 +68,7 @@ fn get_cached_eval(board: &Board, board_hash: u64, move_: &LegalMove, cache: &Tr
     }
 }
 
-fn nega_max_cached(
+pub fn nega_max_cached(
     board: &Board,
     depth: u8,
     mut alpha: f32,
@@ -161,9 +125,9 @@ fn nega_max_cached(
     }
     // move ordering
     moves.sort_unstable_by(|a, b| {
-        let eval_a = get_cached_eval(board, board_hash, a, trans_table);
-        let eval_b = get_cached_eval(board, board_hash, b, trans_table);
-        eval_a.partial_cmp(&eval_b).unwrap() // want to sort valuations in ascending order, these are opponent evals, opps worst situation is my best move
+        let eval_a = get_cached_eval_or_inf(board, board_hash, a, trans_table);
+        let eval_b = get_cached_eval_or_inf(board, board_hash, b, trans_table);
+        eval_a.total_cmp(&eval_b) // want to sort valuations in ascending order, these are opponent evals, opps worst situation is my best move
     });
     let mut nodes_searched = 0;
     for move_ in moves {
@@ -267,71 +231,3 @@ fn nega_max(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32) -> f32 {
     best_score
 }
 
-pub fn search_alpha_beta(board: &Board, depth: u32) -> LegalMove {
-    let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
-    let mut best_move = moves[0].clone();
-    let mut best_score = f32::MIN;
-    for move_ in moves {
-        let new_board = apply_legal_move(board, &move_);
-        let score = alpha_beta_min_rec(&new_board, depth - 1, best_score, f32::MAX) + get_noise(); // add noise to shuffle moves of equal value
-        if score > best_score {
-            best_score = score;
-            best_move = move_;
-        }
-    }
-    best_move
-}
-
-// alpha= minimum guaranteed score for me
-// beta= maximum guaranteed score for opponent
-fn alpha_beta_max_rec(board: &Board, depth: u32, mut alpha: f32, beta: f32) -> f32 {
-    let gamestate = board.get_gamestate();
-    if gamestate == GameState::Mated(board.active_player) {
-        return f32::MIN;
-    }
-    if gamestate == GameState::Stalemate {
-        return 0.0;
-    }
-    if depth == 0 {
-        return get_material_eval(board);
-    }
-    let moves = board.get_legal_moves();
-    for move_ in moves {
-        let new_board = apply_legal_move(board, &move_);
-        let score = alpha_beta_min_rec(&new_board, depth - 1, alpha, beta);
-        if score >= beta {
-            return beta;
-        }
-        if score > alpha {
-            alpha = score;
-        }
-    }
-    alpha
-}
-
-// alpha= minimum guaranteed score for opponent
-// beta= maximum guaranteed score for me
-fn alpha_beta_min_rec(board: &Board, depth: u32, alpha: f32, mut beta: f32) -> f32 {
-    let gamestate = board.get_gamestate();
-    if gamestate == GameState::Mated(board.active_player) {
-        return f32::MIN;
-    }
-    if gamestate == GameState::Stalemate {
-        return 0.0;
-    }
-    if depth == 0 {
-        return get_material_eval(board);
-    }
-    let moves = board.get_legal_moves();
-    for move_ in moves {
-        let new_board = apply_legal_move(board, &move_);
-        let score = -alpha_beta_max_rec(&new_board, depth - 1, alpha, beta);
-        if score <= alpha {
-            return alpha;
-        }
-        if score < beta {
-            beta = score;
-        }
-    }
-    alpha
-}
