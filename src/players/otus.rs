@@ -2,7 +2,7 @@
 
 use crate::{
     board::{Board},
-    hashing::TranspTable,
+    hashing::TranspositionTable,
     search::{
         eval::smart_eval,
         minimax::{search_minimax_threaded_cached},
@@ -21,7 +21,7 @@ impl Otus {
     // TODO make cache size, depth and other parameters configurable
     pub fn new() -> Self {
         Self {
-            transp_table: TranspTable::new(2 << 24),
+            transp_table: TranspositionTable::new(2 << 24),
         }
     }
 }

@@ -13,14 +13,14 @@ mod transposition_table;
 mod zobrist_keys;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct TranspEntry {
+pub struct TranspositionEntry {
     pub depth: u8,
     pub value: f32,
 }
 
-pub struct TranspTable {
+pub struct TranspositionTable {
     // TODO add eviction policy
-    table: Vec<Option<(u64, TranspEntry)>>,
+    table: Vec<Option<(u64, TranspositionEntry)>>,
     size: usize,
     occupancy: usize,
 }

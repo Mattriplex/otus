@@ -1,16 +1,16 @@
-use super::{TranspEntry, TranspTable};
+use super::{TranspositionEntry, TranspositionTable};
 
-impl TranspTable {
-    pub fn new(size: usize) -> TranspTable {
+impl TranspositionTable {
+    pub fn new(size: usize) -> TranspositionTable {
         let table = vec![None; size];
-        TranspTable {
+        TranspositionTable {
             table,
             size,
             occupancy: 0,
         }
     }
 
-    pub fn get(&self, hash: u64) -> Option<&TranspEntry> {
+    pub fn get(&self, hash: u64) -> Option<&TranspositionEntry> {
         let index = hash as usize % self.size;
         if let Some((stored_hash, value)) = &self.table[index] {
             if *stored_hash == hash {
@@ -20,7 +20,7 @@ impl TranspTable {
         None
     }
 
-    pub fn put(&mut self, hash: u64, value: TranspEntry) {
+    pub fn put(&mut self, hash: u64, value: TranspositionEntry) {
         let index = hash as usize % self.size;
         if self.table[index].is_none() {
             self.occupancy += 1;

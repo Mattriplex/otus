@@ -5,7 +5,7 @@ use otus::{
         move_checking::apply_legal_move,
         Board,
     },
-    hashing::TranspTable,
+    hashing::TranspositionTable,
     players::{ChessPlayer, HumanPlayer, RandomPlayer},
     search::{
         eval::smart_eval,
@@ -17,7 +17,7 @@ use otus::{
 fn perftest() {
     let board = Board::default();
     let (_tx, rx) = std::sync::mpsc::channel();
-    let mut transp_table = TranspTable::new(2 << 24);
+    let mut transp_table = TranspositionTable::new(2 << 24);
     search_minimax_threaded_cached(&board, 6, smart_eval, &mut transp_table, rx);
     println!(
         "Transposition table occupancy: {}",

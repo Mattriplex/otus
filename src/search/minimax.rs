@@ -8,7 +8,7 @@ use crate::{
         move_checking::{apply_legal_move, is_king_in_check},
         Board,
     },
-    hashing::{get_zobrist_hash, update_zobrist_hash, TranspEntry, TranspTable},
+    hashing::{get_zobrist_hash, update_zobrist_hash, TranspositionEntry, TranspositionTable},
 };
 
 use super::eval::get_material_eval;
@@ -27,7 +27,7 @@ pub fn search_minimax_threaded_cached(
     board: &Board,
     depth: u8,
     eval_fn: fn(&Board) -> f32,
-    trans_table: &mut TranspTable,
+    trans_table: &mut TranspositionTable,
     rx: mpsc::Receiver<()>,
 ) {
     let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
@@ -70,7 +70,7 @@ pub fn search_minimax_cached(
     board: &Board,
     depth: u8,
     eval_fn: fn(&Board) -> f32,
-    trans_table: &mut TranspTable,
+    trans_table: &mut TranspositionTable,
 ) -> LegalMove {
     let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
     let mut best_move = moves[0].clone();
@@ -96,7 +96,7 @@ pub fn search_minimax_cached(
     best_move
 }
 
-fn get_cached_eval(board: &Board, board_hash: u64, move_: &LegalMove, cache: &TranspTable) -> f32 {
+fn get_cached_eval(board: &Board, board_hash: u64, move_: &LegalMove, cache: &TranspositionTable) -> f32 {
     let hash = update_zobrist_hash(board, board_hash, move_);
     match cache.get(hash) {
         Some(entry) => entry.value,
@@ -110,7 +110,7 @@ fn nega_max_cached(
     mut alpha: f32,
     beta: f32,
     eval_fn: fn(&Board) -> f32,
-    trans_table: &mut TranspTable,
+    trans_table: &mut TranspositionTable,
     board_hash: u64,
 ) -> SearchResult {
     let cache_entry = trans_table.get(board_hash);
@@ -130,7 +130,7 @@ fn nega_max_cached(
         };
         trans_table.put(
             board_hash,
-            TranspEntry {
+            TranspositionEntry {
                 depth: 0,
                 value: eval,
             },
@@ -149,7 +149,7 @@ fn nega_max_cached(
         };
         trans_table.put(
             board_hash,
-            TranspEntry {
+            TranspositionEntry {
                 depth: 0,
                 value: eval,
             },
@@ -191,7 +191,7 @@ fn nega_max_cached(
     }
     trans_table.put(
         board_hash,
-        TranspEntry {
+        TranspositionEntry {
             depth,
             value: alpha,
         },

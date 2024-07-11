@@ -1,6 +1,6 @@
 use crate::{
     board::{models::LegalMove, Board},
-    hashing::TranspTable,
+    hashing::TranspositionTable,
 };
 
 pub mod human_player;
@@ -19,5 +19,5 @@ pub struct HumanPlayer;
 pub struct RandomPlayer;
 
 pub struct Otus {
-    transp_table: TranspTable,
+    transp_table: TranspositionTable,
 }

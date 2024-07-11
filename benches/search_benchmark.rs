@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use otus::{
     board::Board,
-    hashing::TranspTable,
+    hashing::TranspositionTable,
     search::{
         eval::{smart_eval},
         minimax::{search_alpha_beta, search_minimax, search_minimax_cached},
@@ -13,7 +13,7 @@ pub fn minimax_cached(c: &mut Criterion) {
 
     c.bench_function("minimax_cached", |b| {
         b.iter(|| {
-            let mut transp_table = TranspTable::new(1 << 20);
+            let mut transp_table = TranspositionTable::new(1 << 20);
             search_minimax_cached(&mut board, 4, smart_eval, &mut transp_table)
         });
     });
