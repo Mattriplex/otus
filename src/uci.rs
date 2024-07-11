@@ -2,12 +2,12 @@ use std::thread;
 
 use crate::{
     board::{
-        models::{Move},
+        models::Move,
         move_checking::apply_move,
         Board,
     },
-    players::{ChessPlayer, Otus, UciPlayer},
-    search::{perft},
+    players::{Otus, UciPlayer},
+    search::perft,
 };
 
 pub enum WorkerMessage {

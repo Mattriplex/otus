@@ -6,15 +6,11 @@
 use crate::{
     board::{
         models::{GameState, LegalMove},
-        move_checking::{apply_legal_move, is_king_in_check},
+        move_checking::apply_legal_move,
         Board,
     },
-    hashing::{get_zobrist_hash, update_zobrist_hash, TranspositionEntry, TranspositionTable}, search::{eval::get_material_eval, minimax::get_noise},
+    search::{eval::get_material_eval, minimax::get_noise},
 };
-
-use super::optimized::nega_max_cached;
-
-
 
 pub fn search_alpha_beta(board: &Board, depth: u32) -> LegalMove {
     let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
@@ -85,35 +81,4 @@ fn alpha_beta_min_rec(board: &Board, depth: u32, alpha: f32, mut beta: f32) -> f
     alpha
 }
 
-/////////////
 
-
-pub fn search_minimax_cached(
-    board: &Board,
-    depth: u8,
-    eval_fn: fn(&Board) -> f32,
-    trans_table: &mut TranspositionTable,
-) -> LegalMove {
-    let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
-    let mut best_move = moves[0].clone();
-    let mut best_score = f32::MIN;
-    let initial_hash = get_zobrist_hash(board);
-    for move_ in moves {
-        let new_board = apply_legal_move(board, &move_);
-        let result = nega_max_cached(
-            &new_board,
-            depth - 1,
-            f32::MIN,
-            f32::MAX,
-            eval_fn,
-            trans_table,
-            update_zobrist_hash(board, initial_hash, &move_),
-        );
-        let score = -result.eval + get_noise(); // add noise to shuffle moves of equal value
-        if score > best_score {
-            best_score = score;
-            best_move = move_;
-        }
-    }
-    best_move
-}

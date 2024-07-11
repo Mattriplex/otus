@@ -14,8 +14,9 @@ use super::SearchResult;
 
 
 /**
- * Never call this in a checkmated or stalemate position, i.e. positions without legal moves.
- * Use Board::getGameState to ensure the precondition if necessary.
+ * Never call this in a checkmated or stalemate position, i.e. positions without legal moves. Use Board::getGameState to ensure the precondition if necessary.
+ * Listens for termination signal each time a move has been evaluated completely.
+ * Prints UCI-conformant search updates to stdout
  */
 pub fn search_minimax_threaded_cached(
     board: &Board,
@@ -68,7 +69,42 @@ fn get_cached_eval_or_inf(board: &Board, board_hash: u64, move_: &LegalMove, cac
     }
 }
 
-pub fn nega_max_cached(
+#[inline]
+fn get_leaf_eval(board: &Board, board_hash: u64, eval_fn: fn(&Board) -> f32, trans_table: &mut TranspositionTable,
+) -> SearchResult {
+    let eval = match board.get_gamestate() {
+        GameState::Mated(_) => f32::MIN,
+        GameState::Stalemate => 0.0,
+        GameState::InProgress => eval_fn(board),
+    };
+    trans_table.put(
+        board_hash,
+        TranspositionEntry {
+            depth: 0,
+            value: eval,
+        },
+    ); // TODO experiment if this is actually faster
+    SearchResult {
+        eval,
+        nodes_searched: 1,
+    }
+}
+
+#[inline]
+fn get_cached_eval(trans_table: &mut TranspositionTable, board_hash: u64, depth: u8) -> Option<SearchResult> {
+    let cache_entry = trans_table.get(board_hash);
+    if let Some(entry) = cache_entry {
+        if entry.depth >= depth {
+            return Some(SearchResult {
+                eval: entry.value,
+                nodes_searched: 0,
+            });
+        }
+    }
+    None
+}
+
+fn nega_max_cached(
     board: &Board,
     depth: u8,
     mut alpha: f32,
@@ -77,32 +113,11 @@ pub fn nega_max_cached(
     trans_table: &mut TranspositionTable,
     board_hash: u64,
 ) -> SearchResult {
-    let cache_entry = trans_table.get(board_hash);
-    if let Some(entry) = cache_entry {
-        if entry.depth >= depth {
-            return SearchResult {
-                eval: entry.value,
-                nodes_searched: 0,
-            };
-        }
+    if let Some(cached_result) = get_cached_eval(trans_table, board_hash, depth) {
+        return cached_result
     }
     if depth == 0 {
-        let eval = match board.get_gamestate() {
-            GameState::Mated(_) => f32::MIN,
-            GameState::Stalemate => 0.0,
-            GameState::InProgress => eval_fn(board),
-        };
-        trans_table.put(
-            board_hash,
-            TranspositionEntry {
-                depth: 0,
-                value: eval,
-            },
-        ); // TODO experiment if this is actually faster
-        return SearchResult {
-            eval,
-            nodes_searched: 1,
-        };
+        return get_leaf_eval(board, board_hash, eval_fn, trans_table);
     }
     let mut moves = board.get_legal_moves(); // Avoid calling get_gamestate because it would duplicate work from get_legal_moves()
     if moves.is_empty() {
@@ -231,3 +246,33 @@ fn nega_max(board: &Board, depth: u32, eval_fn: fn(&Board) -> f32) -> f32 {
     best_score
 }
 
+/** Used as an entrypoint for the benchmark */
+pub fn search_minimax_cached(
+    board: &Board,
+    depth: u8,
+    eval_fn: fn(&Board) -> f32,
+    trans_table: &mut TranspositionTable,
+) -> LegalMove {
+    let moves = board.get_legal_moves(); // Assumption: this is never called in checkmated or stalemate position
+    let mut best_move = moves[0].clone();
+    let mut best_score = f32::MIN;
+    let initial_hash = get_zobrist_hash(board);
+    for move_ in moves {
+        let new_board = apply_legal_move(board, &move_);
+        let result = nega_max_cached(
+            &new_board,
+            depth - 1,
+            f32::MIN,
+            f32::MAX,
+            eval_fn,
+            trans_table,
+            update_zobrist_hash(board, initial_hash, &move_),
+        );
+        let score = -result.eval + get_noise(); // add noise to shuffle moves of equal value
+        if score > best_score {
+            best_score = score;
+            best_move = move_;
+        }
+    }
+    best_move
+}
