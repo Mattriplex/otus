@@ -3,7 +3,7 @@
 use crate::board::{
     model_utils::ColorProps,
     models::{Color, File, LegalMove, Piece, PieceType, Square},
-    move_checking::square_utils::SquareIter,
+    move_checking::movement_patterns::SquareIter,
     Board,
 };
 

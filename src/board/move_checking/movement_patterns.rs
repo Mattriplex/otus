@@ -1,3 +1,4 @@
+/** Utility functions and models for generating pseudo-legal moves, i.e. legal moves on an empty board */
 use crate::board::models::{Color, File, PieceType, Rank, Square};
 
 pub struct SquareIter {

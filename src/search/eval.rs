@@ -5,7 +5,7 @@ use crate::board::{
     models::{Color, File, Piece, PieceType, Square},
     move_checking::{
         is_king_in_check, seek_king,
-        square_utils::{pos_plus, SquareIter},
+        movement_patterns::{pos_plus, SquareIter},
     },
     Board,
 };

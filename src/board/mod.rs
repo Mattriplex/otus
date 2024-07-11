@@ -11,7 +11,7 @@ use self::{
     move_checking::{
         can_castle_kingside, can_castle_queenside, get_legal_move_from_pseudolegal_move,
         is_king_in_check, is_move_legal,
-        square_utils::{pos_plus, DirIter, KnightHopIter, RayIter},
+        movement_patterns::{pos_plus, DirIter, KnightHopIter, RayIter},
     },
 };
 

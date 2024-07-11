@@ -1,6 +1,6 @@
 use super::{
     models::{Color, Piece, PieceType, Square},
-    move_checking::square_utils::{pos_plus, DirIter, KnightHopIter, RayIter, SquareIter},
+    move_checking::movement_patterns::{pos_plus, DirIter, KnightHopIter, RayIter, SquareIter},
     Board,
 };
 

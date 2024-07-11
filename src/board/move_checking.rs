@@ -1,10 +1,10 @@
-pub mod square_utils;
+pub mod movement_patterns;
 #[cfg(test)]
 mod tests;
 
 use crate::board::{Board, Move};
 
-use self::square_utils::{is_move_pseudo_legal, SlideIter};
+use self::movement_patterns::{is_move_pseudo_legal, SlideIter};
 
 use super::{
     board_utils::is_square_attacked,
